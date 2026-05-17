@@ -22,43 +22,87 @@ $outQt = Join-Path $root 'out\qt'
 $outVr = Join-Path $root 'out\vr'
 New-Item -ItemType Directory -Force -Path $outQt, $outVr | Out-Null
 
-# --- Source mapping (rename-tolerant: take first match per role) ---
-function Pick($pattern) {
-    $f = Get-ChildItem -Path $src -Filter $pattern -File -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $f) { return $null } else { return $f.FullName }
-}
+# --- Procedural placeholder source generation ---
+# The original third-party source images were removed for licensing reasons
+# (unknown provenance + a baked-in Steam logo). This script now synthesises
+# its own background bitmaps from scratch (linear gradient + faint scan
+# lines + simple geometric shape) so the build is fully self-contained and
+# free of any third-party imagery. All title text is layered on top later
+# by Add-TitleBand / Build-Logo.
 
-# Explicit mapping by current random filenames; falls back to dimension heuristic.
-$mapExplicit = @{
-    icon       = '7L14i.jpg'   # rounded-square icon
-    capsule    = 'GP5cj.jpg'   # tall ornamental wall
-    heroVr     = 'et3Ce.jpg'   # legacy: has old project name + Steam logo baked in; REPLACE before release
-    heroQt     = 'tOPhD.jpg'   # data streams (no Steam logo)
-    logoBg     = 'jXIxZ.jpg'   # flat tablet pattern
-}
+function New-PlaceholderBitmap {
+    param(
+        [int]$Width,
+        [int]$Height,
+        [System.Drawing.Color]$TopColor,
+        [System.Drawing.Color]$BottomColor,
+        [string]$OutPath,
+        [switch]$DrawDiamond,
+        [switch]$DrawCircle
+    )
+    $bmp = New-Object System.Drawing.Bitmap $Width, $Height
+    $g = [System.Drawing.Graphics]::FromImage($bmp)
+    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
 
-$resolved = @{}
-foreach ($k in $mapExplicit.Keys) {
-    $p = Join-Path $src $mapExplicit[$k]
-    if (Test-Path $p) { $resolved[$k] = $p }
-}
+    # Vertical gradient background.
+    $grad = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+        (New-Object System.Drawing.Point 0, 0),
+        (New-Object System.Drawing.Point 0, $Height),
+        $TopColor, $BottomColor)
+    $g.FillRectangle($grad, 0, 0, $Width, $Height)
 
-if ($resolved.Count -lt 5) {
-    Write-Warning "Explicit source filenames not all found; falling back to dimension heuristic."
-    $all = Get-ChildItem -Path $src -File | Where-Object { $_.Extension -match '\.(jpg|jpeg|png)$' }
-    foreach ($f in $all) {
-        $img = [System.Drawing.Image]::FromFile($f.FullName)
-        $w = $img.Width; $h = $img.Height; $img.Dispose()
-        $ratio = $w / $h
-        if (-not $resolved.icon    -and $ratio -lt 0.75 -and $w -lt 800) { $resolved.icon = $f.FullName; continue }
-        if (-not $resolved.capsule -and $ratio -lt 0.75)                 { $resolved.capsule = $f.FullName; continue }
-        if (-not $resolved.heroVr  -and $ratio -ge 1.4)                  { $resolved.heroVr  = $f.FullName; continue }
-        if (-not $resolved.heroQt  -and $ratio -ge 1.4)                  { $resolved.heroQt  = $f.FullName; continue }
-        if (-not $resolved.logoBg)                                       { $resolved.logoBg  = $f.FullName }
+    # Faint horizontal scan-lines for subtle texture.
+    $linePen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(18, 255, 255, 255)), 1
+    for ($y = 0; $y -lt $Height; $y += 3) {
+        $g.DrawLine($linePen, 0, $y, $Width, $y)
     }
+    $linePen.Dispose()
+
+    # Optional accent shape (centre).
+    $accent = [System.Drawing.Color]::FromArgb(70, 90, 210, 220)
+    $accentBrush = New-Object System.Drawing.SolidBrush $accent
+    $cx = $Width / 2.0; $cy = $Height / 2.0
+    $r  = [math]::Min($Width, $Height) * 0.22
+    if ($DrawDiamond) {
+        $pts = @(
+            (New-Object System.Drawing.PointF $cx,        ($cy - $r)),
+            (New-Object System.Drawing.PointF ($cx + $r),  $cy),
+            (New-Object System.Drawing.PointF $cx,        ($cy + $r)),
+            (New-Object System.Drawing.PointF ($cx - $r),  $cy)
+        )
+        $g.FillPolygon($accentBrush, $pts)
+    } elseif ($DrawCircle) {
+        $g.FillEllipse($accentBrush, ($cx - $r), ($cy - $r), ($r * 2), ($r * 2))
+    }
+    $accentBrush.Dispose()
+
+    $g.Dispose()
+    $bmp.Save($OutPath, [System.Drawing.Imaging.ImageFormat]::Png)
+    $bmp.Dispose()
 }
 
-Write-Host "Resolved sources:" -ForegroundColor Cyan
+# Colour palette (teal / dark-navy) consistent with the in-VR cursor colours.
+$navyTop    = [System.Drawing.Color]::FromArgb(255,  10,  18,  32)
+$navyBot    = [System.Drawing.Color]::FromArgb(255,  22,  44,  72)
+$tealTop    = [System.Drawing.Color]::FromArgb(255,   8,  40,  58)
+$tealBot    = [System.Drawing.Color]::FromArgb(255,  18,  90, 112)
+
+# Synthesised source files live alongside the (now empty) source folder.
+New-Item -ItemType Directory -Force -Path $src | Out-Null
+$resolved = @{
+    icon    = Join-Path $src '_gen_icon.png'
+    capsule = Join-Path $src '_gen_capsule.png'
+    heroVr  = Join-Path $src '_gen_hero_vr.png'
+    heroQt  = Join-Path $src '_gen_hero_qt.png'
+    logoBg  = Join-Path $src '_gen_logo_bg.png'
+}
+New-PlaceholderBitmap -Width 1024 -Height 1024 -TopColor $tealTop -BottomColor $tealBot -OutPath $resolved.icon    -DrawDiamond
+New-PlaceholderBitmap -Width  800 -Height 1200 -TopColor $navyTop -BottomColor $tealBot -OutPath $resolved.capsule -DrawDiamond
+New-PlaceholderBitmap -Width 2400 -Height  800 -TopColor $navyTop -BottomColor $navyBot -OutPath $resolved.heroVr  -DrawCircle
+New-PlaceholderBitmap -Width 2400 -Height  800 -TopColor $tealTop -BottomColor $navyBot -OutPath $resolved.heroQt  -DrawCircle
+New-PlaceholderBitmap -Width 1600 -Height  900 -TopColor $navyTop -BottomColor $tealBot -OutPath $resolved.logoBg
+
+Write-Host "Generated placeholder source images:" -ForegroundColor Cyan
 $resolved.GetEnumerator() | ForEach-Object { Write-Host ("  {0,-9} => {1}" -f $_.Key, (Split-Path -Leaf $_.Value)) }
 
 # --- Helpers ---
@@ -310,7 +354,7 @@ Build-AppArt -outDir $outQt `
     -logoText   'NeoXR Citra' `
     -preserveHero $false
 
-# NeoXR Citra VR (legacy source still has old project name + Steam logo baked in; replace before release)
+# NeoXR Citra VR (clean text overlay on procedurally-generated hero)
 Build-AppArt -outDir $outVr `
     -titleHero  'NeoXR Citra VR' `
     -subtitleHero 'SteamVR build' `
@@ -318,7 +362,7 @@ Build-AppArt -outDir $outVr `
     -capsuleSrc $resolved.capsule `
     -iconSrc    $resolved.icon `
     -logoText   'NeoXR Citra VR' `
-    -preserveHero $true   # source already branded; just crop/resize
+    -preserveHero $false
 
 Write-Host "`nDone. Outputs:" -ForegroundColor Green
 Get-ChildItem -Recurse -File (Split-Path -Parent $outQt) |

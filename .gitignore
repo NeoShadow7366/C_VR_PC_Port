@@ -57,3 +57,7 @@ qt_build.log
 
 # Installer output
 dist/installer/out/
+
+# Procedurally generated steam_art intermediates (recreated by build_art.ps1)
+dist/steam_art/source/_gen_*.png
+
