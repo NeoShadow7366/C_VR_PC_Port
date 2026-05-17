@@ -1,86 +1,182 @@
 <h1 align="center">
   <br>
-  <a href="https://citra-emu.org/"><img src="assets/citravr_logo.png" alt="CitraVR" width="500"></a> (Beta)
+  <a href="https://citra-emu.org/"><img src="assets/citravr_logo.png" alt="CitraVR" width="500"></a>
+  <br>
+  CitraVR — SteamVR / Windows PC Port
+  <br>
 </h1>
 
-<h4 align="center"> Play 3DS homebrew and personal game backups in 3D on the go with your Quest.
-</br>
-  CitraVR is a GPL-licensed, engineless OpenXR application with all source code publicly available.
+<h4 align="center">
+  Play 3DS homebrew and your personal game backups in stereoscopic 3D on any SteamVR headset.
+  <br/>
+  An unofficial Windows/PC port of <a href="https://github.com/amwatson/CitraVR">amwatson/CitraVR</a> built on OpenXR + Vulkan, with no game engine and no proprietary SDKs.
 </h4>
 
 <p align="center">
-  <a href="#compatabillty">Compatibillty</a> |
-  <a href="#releases">Releases</a> |
-  <a href="#known-issues">Known Issues</a> |
-  <a href="#how-to-install-and-run">How to Install and Run</a> |
-  <a href="#building">Building</a> |
-  <a href="#discord">Discord</a> |
-  <a href="#need-help">Need Help?</a> |
-  <a href="#support">Support</a> |
+  <a href="#status">Status</a> |
+  <a href="#features">Features</a> |
+  <a href="#supported-hardware">Hardware</a> |
+  <a href="#install--run">Install & Run</a> |
+  <a href="#building-from-source">Building</a> |
+  <a href="#in-vr-controls">Controls</a> |
+  <a href="#troubleshooting">Troubleshooting</a> |
+  <a href="#credits">Credits</a> |
   <a href="#license">License</a>
 </p>
 
-## Introduction
-I originally created this project to a be a proof-of-concept of some techniques XR developers were curious about. 
-Specifically:
-- Building a 2D/3D hybrid app
-- Creating a VR app to render 2D interactive windows without an engine
-- Using VR layers to get sharp, crisp text and visuals.
+> **Heads up.** This is an unofficial fork. It is **not** affiliated with the original CitraVR project, the Citra team, or Valve. The upstream CitraVR targets standalone Meta Quest headsets; this fork targets desktop PCVR via SteamVR/OpenXR on Windows.
 
-A Quest-native (i.e. OpenXR, without a third-party game engine) port of the [Citra 3DS emulator](https://github.com/citra-emu/citra) Seemed like a great and fun way to demonstrate all these things at once.
+## Status
 
-The project is still small, but I'm looking for ways to improve it as time goes on.
+Beta. The renderer, in-VR menu, Qt configuration UI, controller bindings, head-tracked gyro/accelerometer, and Steam/SteamVR launcher integration are all working and have been verified on real hardware (Valve Index, Bigscreen Beyond 2). Some features are still rough — see [Known Issues](#known-issues).
 
 ## Features
-- Stereoscopic rendering
-- Broad controller support
-- Large, moveable/resizeable screen
-- Playable in mixed reality
-- Low-overhead port
-- Fully GPL-licensed, 100% independent of the Meta SDK
 
-## Compatibillty
+- **Native SteamVR/OpenXR runtime** — no Meta SDK, no third-party game engine, no OpenVR shim.
+- **Vulkan rendering** via `XR_KHR_vulkan_enable2`, with a dedicated VkQueue so SteamVR and the Citra renderer don't race.
+- **Stereoscopic 3D** with adjustable depth (0–100%) and an Immersive Mode (Off / High / Ultra).
+- **In-VR menu** (Dear ImGui on a quad layer) for settings, save states, ROM browser, controller remapping, and quality presets — all without leaving the headset.
+- **Wrist-bar quick controls** — Menu / Start / Select buttons floating above the left grip.
+- **Head-tracking → gyro/accelerometer** so games that read the 3DS motion sensors (Steel Diver, Zelda OoT 3D camera, etc.) respond to head movement.
+- **Per-HMD profile** (`beyond2`, `index`, `vive`, `generic`) — picks the right refresh rate (90/120 Hz cap) automatically.
+- **Qt frontend integration** — `citra-qt` gains a "VR" settings tab and an `Emulation → Launch in VR` menu item; settings round-trip through `%APPDATA%\Citra\vr_config.txt`.
+- **Steam integration** — Inno Setup installer, SteamVR manifest, and PowerShell helpers to add CitraVR as a Steam shortcut (see [dist/](dist/)).
+- **GPLv3, 100% source-available** (this fork and all upstream code).
 
-### HMDs
-CitraVR supports the following devices:
-- Meta Quest 2
-- Meta Quest Pro
-- Meta Quest 3
-- Meta Quest 3S
+## Supported Hardware
 
-### Games
-For a full list of games that work well on CitraVR, please visit the [CitraVR Game Compatability List](https://docs.google.com/spreadsheets/d/1viN8_MWO1HW9QXlkT-TdCGQbH1g660mKsIp1ZTARdho/edit?usp=sharing)
+### HMDs (tested)
+- Valve Index
+- Bigscreen Beyond 2
 
-### Controllers/Input 
-[Touch Controller Input Bindings Diagram](https://github.com/amwatson/CitraVR/wiki/Touch-Controller-Input-Bindings)
+### HMDs (expected to work, less testing)
+- Any SteamVR-compatible HMD: Vive (Pro/2/XR), Pimax, Varjo Aero, Quest 2/3/Pro over Link/AirLink/VirtualDesktop with the SteamVR runtime, WMR headsets via the OpenXR-SteamVR bridge.
 
-For games that need access to more inputs, or if a player needs to access more inputs faster, CitraVR also supports a multitude of 3rd party wired USB and wireless bluetooth controllers. 
+### GPU
+- A modern Vulkan 1.3-capable GPU (NVIDIA Turing+/AMD RDNA+/Intel Arc).
 
-## Releases
-Grab the latest release [here](https://github.com/amwatson/CitraVR/releases)
+### Controllers
+- Valve Index Knuckles (primary target)
+- Vive Wands
+- Oculus Touch / Quest controllers (via SteamVR)
+- The in-VR menu lets you remap any 3DS button to any controller input and persists the bindings.
+
+## Install & Run
+
+### From a release build (recommended)
+1. Install [SteamVR](https://store.steampowered.com/app/250820/SteamVR/) and make sure your headset works in the SteamVR home environment.
+2. Install the [Vulkan Runtime](https://vulkan.lunarg.com/sdk/home#windows) (the redistributable from LunarG is fine; the full SDK is only needed for building).
+3. Download the latest release from the [Releases page](https://github.com/NeoShadow7366/C_VR_PC_Port/releases) and run the installer, **or** unzip the portable build anywhere.
+4. Launch via one of:
+   - `citra-qt.exe` → pick a ROM → **Emulation → Launch in VR**
+   - `citra-qt.exe --vr` (pops a file picker and launches straight into VR)
+   - `run_citra_vr.bat` (edit the `CONFIG` block at the top to point `ROM_PATH` at your game)
+   - The Steam shortcut created by `dist/steam_integration/Add-SteamShortcuts.ps1`
+
+You will need legally-dumped copies of your own 3DS games. This project does **not** distribute ROMs or system files.
+
+### Configuration
+- VR-specific settings: `%APPDATA%\Citra\vr_config.txt` (or edit them via `citra-qt` → **Configure → VR**).
+- Standard Citra settings: `%APPDATA%\Citra\config\qt-config.ini`.
+- Crash dumps: `%APPDATA%\Citra\dumps\citra_vr_<timestamp>.dmp` — symbolize with `tools\symbolize.ps1`.
+
+## Building from Source
+
+**Prerequisites (Windows)**
+- Visual Studio 2022 (Desktop C++ workload)
+- CMake ≥ 3.22
+- [Vulkan SDK 1.3+](https://vulkan.lunarg.com/sdk/home#windows)
+- Qt 6 (only if you want the `citra-qt` launcher)
+- Git with submodule support
+
+```powershell
+git clone --recursive https://github.com/NeoShadow7366/C_VR_PC_Port.git
+cd C_VR_PC_Port
+
+# VR-only build (citra_vr.exe)
+cmake --preset vr
+cmake --build --preset vr
+
+# Qt launcher (citra-qt.exe with the "Launch in VR" menu item)
+cmake --preset qt
+cmake --build --preset qt
+```
+
+Output:
+- `build-vr\bin\Release\citra_vr.exe` (~20 MB) — the standalone VR runtime
+- `build\bin\Release\citra-qt.exe` — the Qt frontend
+
+A `vr-debug` preset is also available for a debug build (PCH/LTO/W-as-E off).
+
+`sccache` is auto-detected if it's on `PATH` and used as the compiler launcher.
+
+### Repository layout (VR-specific bits)
+
+| Path | What it is |
+| --- | --- |
+| `src/citra_vr/` | Standalone `citra_vr.exe` entry point, shutdown handlers, sentinel-restart logic |
+| `src/vr_platform/` | OpenXR session, frame submitter, Vulkan↔XR interop, ImGui menu, cursor / wrist / dim layers, ROM browser, input bridge |
+| `src/video_core/renderer_vulkan/vk_vr_hooks.{h,cpp}` | Vulkan instance/device hooks injected via `XR_KHR_vulkan_enable2` |
+| `src/citra_qt/configuration/configure_vr.{h,cpp,ui}` | "VR" settings tab in the Qt frontend |
+| `src/common/vr_config.{h,cpp}` | Shared `vr_config.txt` reader/writer used by both binaries |
+| `dist/installer/` | Inno Setup script + build scripts for the Windows installer |
+| `dist/steam_integration/` | PowerShell modules to add/remove Steam shortcuts |
+| `dist/steamvr/` | SteamVR manifest + app key registration |
+| `tools/symbolize.ps1` | Resolves `citra_vr.exe+0x...` offsets from minidumps |
+| `Project artifacts/` | Design notes, plans, and per-subsystem documentation |
+
+## In-VR Controls
+
+Default bindings (remappable via the in-VR menu → **Controls**):
+
+| Action | Binding |
+| --- | --- |
+| Open / close menu | Wrist-bar **Menu** button (above left grip) |
+| Hold for Home | Long-press the wrist Menu button (700 ms) |
+| Start / Select | Wrist-bar Start / Select buttons (point + right trigger) |
+| 3DS A / B / X / Y | Right A / B / X / Y |
+| D-pad | Left thumbstick |
+| Circle Pad | Left thumbstick (analog) |
+| C-Stick | Right thumbstick |
+| L / R | Left / Right grip |
+| ZL / ZR | Left / Right trigger |
+| Touchscreen | Point the **right** controller at the lower half of the screen and pull the trigger |
+| Scroll the menu | Right thumbstick (Y axis) |
+
+Cursors are color-coded: **teal** for left hand, **amber** for right.
 
 ## Known Issues
-See the [CitraVR Known Issues](https://github.com/amwatson/CitraVR/wiki/CitraVR-Known-Issues)
 
-## How to Install and Run
-- [How to install and run CitraVR on Quest](https://github.com/amwatson/CitraVR/wiki/Install-Run-on-Quest)
-- [How to back up 3DS Games](https://github.com/amwatson/CitraVR/wiki/Backing-up-3DS-Games)
+- **In-process Load State is disabled** — selecting a save slot relaunches the process to avoid a renderer-cache destructor AV. Save works in-process; Load uses a sentinel-restart. See [memories/repo/renderer_dtor_root_cause.md](memories/repo/renderer_dtor_root_cause.md) (also reproduced in `Project artifacts/`).
+- **SteamVR validation noise** (`PREINITIALIZED` layout, BlankEyeBuffer `SHADER_READ_ONLY_OPTIMAL`) — cosmetic, originates inside SteamVR's compositor; safe to ignore.
+- **WMR headsets via the OpenXR-SteamVR bridge** are untested and may need `CITRA_VR_HMD=generic`.
+- **No mixed-reality passthrough** on PCVR (was a Quest-only feature upstream).
 
-## Building
-[Building for Quest](https://github.com/amwatson/CitraVR/wiki/Building-for-Quest)
+## Troubleshooting
 
-## Discord 
-Join the [Flat2VR](https://flat2vr.com/) discord and from there join [cvr-join](https://discord.com/channels/747967102895390741/1196505250102792232) to get access to the CitraVR community and support forums
+- Run with `--vk-debug` to enable Vulkan validation layers (or set `CITRA_VR_VK_DEBUG=1`).
+- The log lives at `%APPDATA%\Citra\log\citra_log.txt` — the first lines after startup confirm which HMD profile was selected and which `vr_config.txt` values were loaded.
+- Force a specific HMD profile with `CITRA_VR_HMD=beyond2|index|vive|generic` (SteamVR's OpenXR `systemName` is just `"SteamVR/OpenXR : lighthouse"`, so auto-detection often falls back to `generic`).
+- If a crash drops a `.dmp` in `%APPDATA%\Citra\dumps\`, run the **Symbolize Crash Dump** VS Code task or invoke `tools\symbolize.ps1 -Exe build-vr\bin\Release\citra_vr.exe -Offsets @(0x...)` directly.
 
-# Need Help?
-Please check our [Troubleshooting](https://github.com/amwatson/CitraVR/wiki/Troubleshooting) and [Known Issues](https://github.com/amwatson/CitraVR/wiki/CitraVR-Known-Issues) pages to see if your issue is listed.
-To file a bug report or a feature request, please [submit an issue](https://github.com/amwatson/CitraVR/issues/new/choose).
-Otherwise, follow the instructions for <a href="#discord">Discord</a> and post in [cvr-support](https://discord.com/channels/747967102895390741/1196505719910957176)
+## Contributing
 
-## Support
-[Buy me a beer](https://www.buymeacoffee.com/fewerwrong)
+Issues and PRs are welcome on this fork. For changes that also make sense upstream (Quest version), please also consider opening a PR against [amwatson/CitraVR](https://github.com/amwatson/CitraVR).
 
-You can also [buy the original \(non-VR\) Citra project a beer](https://www.patreon.com/citraemu)
+CI runs Windows VR + Qt builds plus a headless smoke test on every push — see [.github/workflows/windows-vr-qt.yml](.github/workflows/windows-vr-qt.yml).
+
+## Credits
+
+This project would not exist without:
+
+- **[CitraVR](https://github.com/amwatson/CitraVR)** by [@amwatson](https://github.com/amwatson) — the original OpenXR port of Citra to Meta Quest. All of the hard rendering and 3DS-emulation-in-VR ground was broken there.
+- **[Citra](https://github.com/citra-emu/citra)** and the [PabloMK7/citra](https://github.com/PabloMK7/citra) fork — the underlying 3DS emulator.
+- **Khronos Group** — OpenXR, Vulkan, glslang, Vulkan-Headers, VMA.
+- **Dear ImGui** by [@ocornut](https://github.com/ocornut) — the in-VR menu UI.
+- **Valve** — SteamVR / OpenXR runtime.
+- All upstream Citra third-party dependencies (SDL, cubeb, dynarmic, openal-soft, libusb, libressl, …) — full attributions in [NOTICE](NOTICE) and [license.txt](license.txt).
 
 ## License
-CitraVR is licensed under the GPLv3 (or any later version). Refer to the [LICENSE.txt](https://github.com/amwatson/CitraVR/blob/master/license.txt) file.
+
+CitraVR (and this fork) is licensed under the **GNU General Public License v3.0 or later**.
+See [license.txt](license.txt) and [NOTICE](NOTICE) for full terms and third-party attributions.
