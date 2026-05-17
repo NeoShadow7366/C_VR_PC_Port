@@ -63,17 +63,50 @@ Beta. The renderer, in-VR menu, Qt configuration UI, controller bindings, head-t
 
 ## Install & Run
 
-### From a release build (recommended)
-1. Install [SteamVR](https://store.steampowered.com/app/250820/SteamVR/) and make sure your headset works in the SteamVR home environment.
-2. Install the [Vulkan Runtime](https://vulkan.lunarg.com/sdk/home#windows) (the redistributable from LunarG is fine; the full SDK is only needed for building).
-3. Download the latest release from the [Releases page](https://github.com/NeoShadow7366/C_VR_PC_Port/releases) and run the installer, **or** unzip the portable build anywhere.
-4. Launch via one of:
-   - `citra-qt.exe` → pick a ROM → **Emulation → Launch in VR**
-   - `citra-qt.exe --vr` (pops a file picker and launches straight into VR)
-   - `run_citra_vr.bat` (edit the `CONFIG` block at the top to point `ROM_PATH` at your game)
-   - The Steam shortcut created by `dist/steam_integration/Add-SteamShortcuts.ps1`
+The project ships as a single-file Windows installer (**Sheikah Protocol**, built with Inno Setup) that deploys **two** entries and — optionally — registers them as non-Steam shortcuts so they appear in your Steam library with full grid art.
 
-You will need legally-dumped copies of your own 3DS games. This project does **not** distribute ROMs or system files.
+| Entry | Binary | What it does |
+| --- | --- | --- |
+| **Sheikah Protocol** | `citra-qt.exe` | Flat-screen Citra (3DS emulator) with the Qt UI. |
+| **Sheikah Protocol VR** | `citra_vr_launcher.exe` | Tiny shim that starts SteamVR (Steam AppID 250820), waits for `vrserver.exe`, then launches `citra_vr.exe`. |
+
+### Quick start
+1. Install [SteamVR](https://store.steampowered.com/app/250820/SteamVR/) and confirm your headset works in SteamVR Home.
+2. Install the [Vulkan Runtime](https://vulkan.lunarg.com/sdk/home#windows) (the LunarG redistributable; the full SDK is only needed for building).
+3. Download the latest `SheikahProtocol-Setup-<ver>.exe` from the [Releases page](https://github.com/NeoShadow7366/C_VR_PC_Port/releases) and run it.
+4. The installer is **per-user** (no admin needed) and installs into `%LOCALAPPDATA%\Programs\SheikahProtocol\`. On the Tasks page you can opt in to:
+   - Desktop shortcuts for each entry
+   - **Add Sheikah Protocol to your Steam library**
+   - **Add Sheikah Protocol VR to your Steam library** *(marked as a VR title — auto-launches SteamVR)*
+5. **Restart Steam** once after install. Both entries then appear in your library with capsule / hero / logo / icon art.
+6. Click **Sheikah Protocol VR** in Steam → the launcher starts SteamVR (if it isn't already), waits for it to come up, then launches `citra_vr.exe`. Pick a ROM from the in-VR browser and play.
+
+> You will need legally-dumped copies of your own 3DS games. This project does **not** distribute ROMs or system files.
+
+### Alternate launch methods
+- `citra-qt.exe` → pick a ROM → **Emulation → Launch in VR**
+- `citra-qt.exe --vr` (pops a file picker and launches straight into VR)
+- `run_citra_vr.bat` (dev shortcut — edit the `CONFIG` block at the top to set `ROM_PATH`)
+- `citra_vr_launcher.exe <rom>` directly
+
+### Steam integration details
+- **App IDs** are computed per the non-Steam-shortcut convention (`crc32(quoted_exe + appname) | 0x80000000`), so they match what Steam ROM Manager / SteamGridDB use.
+- **`shortcuts.vdf`** is rewritten in Steam's binary VDF format. A `.bak` is created on first write.
+- **Grid art** is deployed into `<Steam>\userdata\<id>\config\grid\` with the correct filenames for capsule, small capsule, hero, logo, and icon.
+- The VR shortcut sets `OpenVR=1`, which is what gives it the VR badge in your library and keeps the SteamVR status window relevant while the game runs.
+- By default the installer writes to the **most recently used** Steam account. You can target all signed-in accounts manually with `dist/steam_integration/Add-SteamShortcuts.ps1 -AllUsers`.
+- **Uninstall** removes the program files **and** the Steam shortcuts and grid art.
+
+If you don't want to run the installer, the same scripts can be invoked standalone:
+```powershell
+# Add the entries to Steam without installing anything
+.\dist\steam_integration\Add-SteamShortcuts.ps1
+
+# Remove them later
+.\dist\steam_integration\Remove-SteamShortcuts.ps1
+```
+
+Full deployment-system documentation: [dist/STEAM_INSTALLER_README.md](dist/STEAM_INSTALLER_README.md).
 
 ### Configuration
 - VR-specific settings: `%APPDATA%\Citra\vr_config.txt` (or edit them via `citra-qt` → **Configure → VR**).
@@ -104,17 +137,30 @@ cmake --build --preset qt
 
 Output:
 - `build-vr\bin\Release\citra_vr.exe` (~20 MB) — the standalone VR runtime
+- `build-vr\bin\Release\citra_vr_launcher.exe` — the SteamVR-aware shim used by the Steam shortcut
 - `build\bin\Release\citra-qt.exe` — the Qt frontend
 
 A `vr-debug` preset is also available for a debug build (PCH/LTO/W-as-E off).
 
 `sccache` is auto-detected if it's on `PATH` and used as the compiler launcher.
 
+### Building the installer
+After both `qt` and `vr` presets have produced their binaries, build the Inno Setup installer (requires [Inno Setup 6](https://jrsoftware.org/isinfo.php) on `PATH` or in `%PROGRAMFILES(X86)%\Inno Setup 6\`):
+
+```powershell
+cmake --build build-vr --target sheikah_installer
+# or directly:
+.\dist\installer\Build-Installer.ps1 -AppVersion 0.1.0
+```
+
+Output: `dist\installer\out\SheikahProtocol-Setup-<ver>.exe` (~50 MB). See [dist/STEAM_INSTALLER_README.md](dist/STEAM_INSTALLER_README.md) for the full deployment system.
+
 ### Repository layout (VR-specific bits)
 
 | Path | What it is |
 | --- | --- |
 | `src/citra_vr/` | Standalone `citra_vr.exe` entry point, shutdown handlers, sentinel-restart logic |
+| `src/vr_launcher/` | `citra_vr_launcher.exe` — SteamVR-aware shim invoked by the Steam shortcut |
 | `src/vr_platform/` | OpenXR session, frame submitter, Vulkan↔XR interop, ImGui menu, cursor / wrist / dim layers, ROM browser, input bridge |
 | `src/video_core/renderer_vulkan/vk_vr_hooks.{h,cpp}` | Vulkan instance/device hooks injected via `XR_KHR_vulkan_enable2` |
 | `src/citra_qt/configuration/configure_vr.{h,cpp,ui}` | "VR" settings tab in the Qt frontend |
