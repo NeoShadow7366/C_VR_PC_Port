@@ -197,6 +197,12 @@ if (ANDROID)
     target_include_directories(citra-android PRIVATE android/app/src/main)
 endif()
 
+if (VR_BACKEND_STEAMVR)
+    add_subdirectory(vr_platform)
+    add_subdirectory(citra_vr)
+    add_subdirectory(vr_launcher)
+endif()
+
 if (ENABLE_WEB_SERVICE)
     add_subdirectory(web_service)
 endif()

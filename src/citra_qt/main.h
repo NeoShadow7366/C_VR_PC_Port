@@ -204,6 +204,7 @@ private slots:
     void OnSaveState();
     void OnLoadState();
     void OnMenuReportCompatibility();
+    void OnLaunchVR();
     /// Called whenever a user selects a game in the game list widget.
     void OnGameListLoadFile(QString game_path);
     void OnGameListOpenFolder(u64 program_id, GameListOpenTarget target);

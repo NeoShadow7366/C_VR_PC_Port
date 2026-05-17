@@ -1,0 +1,69 @@
+CitraVR PC port (SteamVR / OpenXR) — Third-Party Notices
+=========================================================
+
+This binary distribution incorporates components from the projects
+listed below. Their license texts are reproduced under the noted paths
+in the source tree. The full text of the GNU GPL v3 (the licence that
+covers Citra and CitraVR itself) is in `license.txt` at the repository
+root.
+
+The Citra project itself (and therefore CitraVR, including all VR
+source under `src/vr_platform/` and `src/citra_vr/`) is licensed under:
+    GNU General Public License, version 3 or later (GPL-3.0-or-later)
+    See `license.txt`.
+
+
+-- VR-specific dependencies (added by the SteamVR / Windows port) --
+
+OpenXR SDK Source (Khronos)
+    Path:    externals/openxr-sdk-src/
+    License: Apache License, Version 2.0
+             (see externals/openxr-sdk-src/LICENSE)
+    Used as: OpenXR loader + headers, statically linked into citra_vr.exe.
+
+Vulkan-Headers (Khronos)
+    Path:    externals/vulkan-headers/
+    License: Apache License, Version 2.0 (also MIT for some files)
+             (see externals/vulkan-headers/LICENSE.txt)
+    Used as: Vulkan / Vulkan-Hpp C++ headers; header-only.
+
+Vulkan Memory Allocator (AMD)
+    Path:    externals/vma/
+    License: MIT License
+    Used as: GPU allocator inside the Vulkan renderer.
+
+Dear ImGui (Omar Cornut)
+    Path:    externals/imgui/
+    License: MIT License
+             (see externals/imgui/LICENSE.txt)
+    Used as: In-VR overlay menu (`src/vr_platform/layers/ImGuiLayer.*`).
+
+SDL 2 (Sam Lantinga)
+    Path:    externals/sdl2/
+    License: zlib License
+    Used as: Optional desktop windowing (citra_qt / citra SDL frontend).
+             The VR binary `citra_vr.exe` does NOT link against SDL.
+
+Microsoft DbgHelp (system DLL)
+    Path:    Windows SDK (dbghelp.lib / dbghelp.dll)
+    License: Microsoft Software License (system component, dynamic link)
+    Used as: MiniDumpWriteDump in the unhandled-exception filter
+             (`src/citra_vr/citra_vr.cpp`).
+
+
+-- Inherited from upstream Citra --
+
+The remaining third-party components (boost, cryptopp, dynarmic,
+enet, fmt, glad, glslang, httplib, libressl, libusb, libyuv, lodepng,
+nihstro, openal-soft, soundtouch, sirit, teakra, xbyak, zstd, etc.)
+are inherited from the upstream Citra project. Their licences live in
+the respective subdirectories under `externals/` and are unchanged by
+this port. See the Citra project for full attributions.
+
+
+-- SteamVR runtime --
+
+CitraVR communicates with the Valve SteamVR OpenXR runtime via the
+OpenXR loader. SteamVR itself is NOT distributed with this binary; the
+user must install Steam + SteamVR separately. Linkage is dynamic and at
+runtime only.

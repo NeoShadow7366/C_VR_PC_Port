@@ -83,6 +83,12 @@ public:
     void TryPresent(int timeout_ms, bool is_secondary) override {}
     void Sync() override;
 
+    /// Public accessors used by the CitraVR / SteamVR backend to bind the
+    /// runtime's Vulkan device to the OpenXR session and to register a
+    /// frame-publish callback on the headless presentation path.
+    Instance& GetVulkanInstance() { return instance; }
+    PresentWindow& GetMainPresentWindow() { return main_window; }
+
 private:
     void ReloadPipeline();
     void CompileShaders();

@@ -1,0 +1,146 @@
+#include "imgui.h"
+#include <string>
+#include <vector>
+
+// High-level UI State
+enum class MenuTab {
+    Library,
+    Display,
+    Controls,
+    Session,
+    About
+};
+
+struct GameROM {
+    std::string title;
+    std::string status;
+    ImVec4 themeColor;
+};
+
+class CitraVRMenu {
+public:
+    void Render(); // Call this inside your OpenXR render loop
+
+private:
+    MenuTab currentTab = MenuTab::Library;
+    
+    // UI Helpers
+    void DrawSidebar(float width);
+    void DrawLibrary();
+    void DrawDisplaySettings();
+    void DrawSessionControls();
+    
+    // Custom Styled Widgets
+    bool BigTabButton(const char* label, bool active, const ImVec2& size);
+    void StyledSlider(const char* label, float* value, float min, float max, const char* format);
+    void DrawGameCard(const GameROM& game);
+
+    // Mock Data
+    std::vector<GameROM> games = {
+        {"Zelda: Ocarina of Time", "Currently Loaded", ImVec4(0.1f, 0.8f, 0.4f, 1.0f)},
+        {"Super Mario Land 3D", "Ready", ImVec4(0.9f, 0.2f, 0.2f, 1.0f)},
+        {"Metroid: Samus Returns", "Ready", ImVec4(0.9f, 0.5f, 0.1f, 1.0f)}
+    };
+};
+
+// --- Implementation Snippets ---
+
+void CitraVRMenu::Render() {
+    // Setup modern styling for this frame
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.WindowRounding = 20.0f;
+    style.FrameRounding = 10.0f;
+    style.ItemSpacing = ImVec2(12, 12);
+    style.WindowPadding = ImVec2(20, 20);
+
+    // Colors: Slate 950 theme
+    ImVec4* colors = style.Colors;
+    colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.09f, 0.16f, 0.95f); // Slate-950
+    colors[ImGuiCol_Border] = ImVec4(0.15f, 0.18f, 0.25f, 1.0f);   // Slate-800
+    colors[ImGuiCol_Button] = ImVec4(0.12f, 0.15f, 0.22f, 1.0f);
+    colors[ImGuiCol_ButtonHovered] = ImVec4(0.02f, 0.71f, 0.83f, 1.0f); // Cyan-500
+    colors[ImGuiCol_Header] = ImVec4(0.02f, 0.71f, 0.83f, 0.5f);
+
+    // Main VR Window (Assume a 1280x720 quad layer)
+    ImGui::SetNextWindowSize(ImVec2(1200, 750), ImGuiCond_Always);
+    ImGui::Begin("CitraVR Dashboard", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+
+    // Layout: Left Sidebar + Right Content
+    DrawSidebar(240.0f);
+    ImGui::SameLine();
+    
+    ImGui::BeginChild("ContentArea", ImVec2(0, 0), true, ImGuiWindowFlags_NoScrollbar);
+        // Header
+        ImGui::TextDisabled("STATIONARY // %s", 
+            currentTab == MenuTab::Library ? "LIBRARY" : 
+            currentTab == MenuTab::Display ? "DISPLAY" : "SYSTEM");
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        switch (currentTab) {
+            case MenuTab::Library: DrawLibrary(); break;
+            case MenuTab::Display: DrawDisplaySettings(); break;
+            case MenuTab::Session: DrawSessionControls(); break;
+            default: ImGui::Text("Coming Soon..."); break;
+        }
+    ImGui::EndChild();
+
+    ImGui::End();
+}
+
+void CitraVRMenu::DrawSidebar(float width) {
+    ImGui::BeginChild("Sidebar", ImVec2(width, 0), false);
+    
+    ImGui::PushFont(nullptr); // Use a larger font here if loaded
+    ImGui::TextColored(ImVec4(0.06f, 0.71f, 0.83f, 1.0f), "CITRA VR");
+    ImGui::TextDisabled("SteamVR Build");
+    ImGui::PopFont();
+    ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+
+    if (BigTabButton("Library", currentTab == MenuTab::Library, ImVec2(-1, 50))) currentTab = MenuTab::Library;
+    if (BigTabButton("Display", currentTab == MenuTab::Display, ImVec2(-1, 50))) currentTab = MenuTab::Display;
+    if (BigTabButton("Controls", currentTab == MenuTab::Controls, ImVec2(-1, 50))) currentTab = MenuTab::Controls;
+    if (BigTabButton("Session", currentTab == MenuTab::Session, ImVec2(-1, 50))) currentTab = MenuTab::Session;
+    
+    // Bottom Align Quit
+    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 60);
+    if (ImGui::Button("Quit App", ImVec2(-1, 45))) { /* Handle Quit */ }
+    
+    ImGui::EndChild();
+}
+
+bool CitraVRMenu::BigTabButton(const char* label, bool active, const ImVec2& size) {
+    if (active) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.06f, 0.71f, 0.83f, 1.0f));
+    bool pressed = ImGui::Button(label, size);
+    if (active) ImGui::PopStyleColor();
+    return pressed;
+}
+
+void CitraVRMenu::DrawGameCard(const GameROM& game) {
+    ImGui::BeginChild(game.title.c_str(), ImVec2(280, 160), true, ImGuiWindowFlags_NoScrollbar);
+    
+    // Color Accent Strip
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImVec2 p0 = ImGui::GetCursorScreenPos();
+    draw_list->AddRectFilled(p0, ImVec2(p0.x + 280, p0.y + 4), ImGui::GetColorU32(game.themeColor));
+    
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
+    ImGui::TextWrapped(game.title.c_str());
+    ImGui::TextDisabled("%s", game.status.c_str());
+    
+    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 40);
+    if (ImGui::Button("Launch", ImVec2(80, 30))) { /* Load Game */ }
+    ImGui::SameLine();
+    if (ImGui::Button("Saves", ImVec2(80, 30))) { /* Show Saves */ }
+    
+    ImGui::EndChild();
+}
+
+void CitraVRMenu::DrawLibrary() {
+    ImGui::Columns(3, "GameGrid", false);
+    for (const auto& game : games) {
+        DrawGameCard(game);
+        ImGui::NextColumn();
+    }
+    ImGui::Columns(1);
+}

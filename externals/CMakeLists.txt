@@ -430,7 +430,18 @@ if (ENABLE_VULKAN)
 endif()
 
 # OpenXR
-if (ANDROID)
+# - Android: always built (Quest VR app).
+# - Windows: built when VR_BACKEND_STEAMVR is enabled.
+if (ANDROID OR VR_BACKEND_STEAMVR)
+    set(BUILD_LOADER     ON  CACHE BOOL "" FORCE)
+    set(BUILD_API_LAYERS OFF CACHE BOOL "" FORCE)
+    set(BUILD_TESTS      OFF CACHE BOOL "" FORCE)
+    set(BUILD_CONFORMANCE_TESTS OFF CACHE BOOL "" FORCE)
     add_subdirectory(openxr-sdk-src)
+endif()
+
+# Dear ImGui — used only by the SteamVR/Windows in-VR menu.
+if (VR_BACKEND_STEAMVR)
+    add_subdirectory(imgui)
 endif()
 

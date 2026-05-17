@@ -20,6 +20,7 @@
 #include "video_core/host_shaders/vulkan_present_interlaced_frag_spv.h"
 #include "video_core/host_shaders/vulkan_present_vert_spv.h"
 
+#include <cstdlib>
 #include <vk_mem_alloc.h>
 
 MICROPROFILE_DEFINE(Vulkan_RenderFrame, "Vulkan", "Render Frame", MP_RGB(128, 128, 64));
@@ -105,6 +106,7 @@ void RendererVulkan::Sync() {
 void RendererVulkan::PrepareRendertarget() {
     const auto& framebuffer_config = pica.regs.framebuffer_config;
     const auto& regs_lcd = pica.regs_lcd;
+
     for (u32 i = 0; i < 3; i++) {
         const u32 fb_id = i == 2 ? 1 : 0;
         const auto& framebuffer = framebuffer_config[fb_id];
@@ -138,6 +140,23 @@ void RendererVulkan::PrepareDraw(Frame* frame, const Layout::FramebufferLayout& 
     renderpass_cache.EndRendering();
     scheduler.Record([this, layout, frame, descriptor_set, renderpass = main_window.Renderpass(),
                       index = current_pipeline](vk::CommandBuffer cmdbuf) {
+        // Explicitly synchronise PICA framebuffer uploads (transfer /
+        // shader / colour-attachment writes coming from the rasterizer
+        // cache surface that AccelerateDisplay handed us) with the
+        // upcoming fragment-shader sample of those images in the present
+        // render-pass. In the standard Citra flow the WSI present
+        // implicitly serialises this; in our headless VR path there's no
+        // WSI fence so the sample can race the upload.
+        const vk::MemoryBarrier global_barrier{
+            .srcAccessMask = vk::AccessFlagBits::eTransferWrite |
+                             vk::AccessFlagBits::eShaderWrite |
+                             vk::AccessFlagBits::eColorAttachmentWrite,
+            .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+        };
+        cmdbuf.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands,
+                               vk::PipelineStageFlagBits::eFragmentShader,
+                               vk::DependencyFlags{}, global_barrier, {}, {});
+
         const vk::Viewport viewport = {
             .x = 0.0f,
             .y = 0.0f,

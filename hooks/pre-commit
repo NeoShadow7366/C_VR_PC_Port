@@ -24,3 +24,42 @@ If you know what you are doing, you can try 'git commit --no-verify' to bypass t
 END
     exit 1
 fi
+
+# ---------------------------------------------------------------------------
+# clang-format check — scoped to src/vr_platform/ and src/citra_vr/ only.
+# Skipped silently when clang-format is not on PATH (no hard dependency).
+# Run 'git commit --no-verify' to bypass if needed.
+# ---------------------------------------------------------------------------
+if command -v clang-format >/dev/null 2>&1; then
+    vr_files=$(git diff --cached --name-only --diff-filter=ACMR \
+        -- 'src/vr_platform/*.cpp' 'src/vr_platform/*.h' \
+           'src/vr_platform/**/*.cpp' 'src/vr_platform/**/*.h' \
+           'src/citra_vr/*.cpp' 'src/citra_vr/*.h')
+
+    if [ -n "$vr_files" ]; then
+        format_errors=0
+        for f in $vr_files; do
+            if [ -f "$f" ]; then
+                diff_out=$(clang-format --style=file "$f" | diff -u "$f" -)
+                if [ -n "$diff_out" ]; then
+                    echo "clang-format: $f needs formatting"
+                    format_errors=1
+                fi
+            fi
+        done
+
+        if [ "$format_errors" -ne 0 ]; then
+            cat<<END
+
+Error: Some VR source files are not clang-format clean.
+Run:  clang-format --style=file -i <file>
+  or: git clang-format HEAD~1
+to fix, then re-stage the files.
+Use 'git commit --no-verify' to bypass this check.
+END
+            exit 1
+        fi
+    fi
+else
+    echo "pre-commit: clang-format not found on PATH — formatting check skipped"
+fi

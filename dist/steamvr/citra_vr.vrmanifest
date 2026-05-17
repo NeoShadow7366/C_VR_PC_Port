@@ -1,0 +1,17 @@
+{
+    "source": "builtin",
+    "applications": [
+        {
+            "app_key": "citra.vr.standalone",
+            "launch_type": "binary",
+            "binary_path_windows": "citra_vr.exe",
+            "is_dashboard_overlay": false,
+            "strings": {
+                "en_us": {
+                    "name": "CitraVR (3DS)",
+                    "description": "Nintendo 3DS emulator with native SteamVR / OpenXR rendering, virtual screen, motion controls, head tracking and Steam Link streaming."
+                }
+            }
+        }
+    ]
+}

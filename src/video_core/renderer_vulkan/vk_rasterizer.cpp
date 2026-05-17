@@ -13,6 +13,9 @@
 #include "video_core/renderer_vulkan/renderer_vulkan.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_rasterizer.h"
+
+#include <mutex>
+#include <set>
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 #include "video_core/texture/texture_decode.h"
 

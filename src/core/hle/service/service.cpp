@@ -219,6 +219,7 @@ void Init(Core::System& core) {
     bool lle_module_present = false;
 
     for (const auto& service_module : service_module_map) {
+        LOG_INFO(Service, "Service::Init: module '{}'", service_module.name);
         const bool has_lle = AttemptLLE(service_module);
         if (!has_lle && service_module.init_function != nullptr) {
             service_module.init_function(core);

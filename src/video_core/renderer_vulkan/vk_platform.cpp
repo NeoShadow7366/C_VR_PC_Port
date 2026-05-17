@@ -24,6 +24,7 @@
 #include "common/settings.h"
 #include "core/frontend/emu_window.h"
 #include "video_core/renderer_vulkan/vk_platform.h"
+#include "video_core/renderer_vulkan/vk_vr_hooks.h"
 
 namespace Vulkan {
 
@@ -128,6 +129,11 @@ std::shared_ptr<Common::DynamicLibrary> OpenLibrary(
 vk::SurfaceKHR CreateSurface(vk::Instance instance, const Frontend::EmuWindow& emu_window) {
     const auto& window_info = emu_window.GetWindowInfo();
     vk::SurfaceKHR surface{};
+
+    if (window_info.type == Frontend::WindowSystemType::Headless) {
+        // Headless: caller (PresentWindow) handles the off-screen path.
+        return surface;
+    }
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
     if (window_info.type == Frontend::WindowSystemType::Windows) {
@@ -357,6 +363,22 @@ vk::UniqueInstance CreateInstance(const Common::DynamicLibrary& library,
         instance_ci.pNext = &layer_settings_ci;
     }
 #endif
+
+    // If a VR runtime has installed hooks, route VkInstance creation through
+    // it so the runtime can append the extensions it requires (otherwise
+    // xrCreateSession would later reject our VkInstance).
+    if (const auto* hooks = GetVrHooks(); hooks && hooks->create_instance) {
+        VkInstance raw_instance = VK_NULL_HANDLE;
+        const VkInstanceCreateInfo c_ci = instance_ci;
+        const VkResult res = hooks->create_instance(&c_ci, nullptr, &raw_instance);
+        if (res != VK_SUCCESS || raw_instance == VK_NULL_HANDLE) {
+            throw std::runtime_error(
+                fmt::format("VR hook create_instance failed: VkResult={}", static_cast<int>(res)));
+        }
+        vk::UniqueInstance instance{vk::Instance(raw_instance)};
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(*instance);
+        return instance;
+    }
 
     auto instance = vk::createInstanceUnique(instance_ci);
 

@@ -48,3 +48,12 @@ repo/
 .ccache/
 node_modules/
 VULKAN_SDK/
+
+# Build / run logs
+*.log
+build_log.txt
+build_errors.txt
+qt_build.log
+
+# Installer output
+dist/installer/out/

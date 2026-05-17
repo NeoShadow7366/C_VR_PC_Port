@@ -17,6 +17,25 @@ include(CMakeDependentOption)
 
 project(citra LANGUAGES C CXX ASM)
 
+# ---------------------------------------------------------------------------
+# sccache — auto-enable compiler caching when sccache is on PATH.
+# Degrades gracefully: no-op when sccache is absent or launchers are already
+# set (e.g. via -DCMAKE_C_COMPILER_LAUNCHER=... on the command line).
+# ---------------------------------------------------------------------------
+find_program(SCCACHE sccache)
+if (SCCACHE AND NOT CMAKE_C_COMPILER_LAUNCHER)
+    message(STATUS "sccache found: ${SCCACHE} — compiler caching enabled")
+    set(CMAKE_C_COMPILER_LAUNCHER   "${SCCACHE}" CACHE STRING "Compiler launcher" FORCE)
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${SCCACHE}" CACHE STRING "Compiler launcher" FORCE)
+    # MSVC: embed debug info in object files so sccache can cache them.
+    # Requires CMake >= 3.25; silently skipped on older CMake.
+    if (MSVC AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.25")
+        set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded CACHE STRING "" FORCE)
+    endif()
+elseif(NOT SCCACHE)
+    message(STATUS "sccache not found on PATH — compiler caching disabled (install sccache to enable)")
+endif()
+
 # Some submodules like to pick their own default build type if not specified.
 # Make sure we default to Release build type always, unless the generator has custom types.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -82,6 +101,20 @@ CMAKE_DEPENDENT_OPTION(ENABLE_LIBUSB "Enable libusb for GameCube Adapter support
 CMAKE_DEPENDENT_OPTION(ENABLE_SOFTWARE_RENDERER "Enables the software renderer" ON "NOT ANDROID" OFF)
 CMAKE_DEPENDENT_OPTION(ENABLE_OPENGL "Enables the OpenGL renderer" ON "NOT APPLE" OFF)
 option(ENABLE_VULKAN "Enables the Vulkan renderer" ON)
+
+# VR / OpenXR
+# ENABLE_VR turns on the VR build path. On Android it produces the existing
+# Quest / Meta build (OpenGL ES + Android surface swapchains, JNI/Kotlin glue).
+# On Windows it produces a native SteamVR application using Vulkan + Win32
+# OpenXR bindings (see src/vr_platform).
+if (ANDROID)
+    option(ENABLE_VR "Build VR (OpenXR) support" ON)
+else()
+    option(ENABLE_VR "Build VR (OpenXR) support" OFF)
+endif()
+CMAKE_DEPENDENT_OPTION(VR_BACKEND_STEAMVR
+    "Build the SteamVR / Windows PCVR backend (Vulkan + Win32)"
+    ON "ENABLE_VR;WIN32;NOT ANDROID" OFF)
 
 option(USE_DISCORD_PRESENCE "Enables Discord Rich Presence" OFF)
 

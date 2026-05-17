@@ -6,6 +6,7 @@
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_master_semaphore.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
+#include "video_core/renderer_vulkan/vk_vr_hooks.h"
 
 namespace Vulkan {
 
@@ -97,6 +98,7 @@ void MasterSemaphoreTimeline::SubmitWork(vk::CommandBuffer cmdbuf, vk::Semaphore
     };
 
     try {
+        std::scoped_lock vr_lock{GetVrQueueMutex()};
         instance.GetGraphicsQueue().submit(submit_info);
     } catch (vk::DeviceLostError& err) {
         LOG_CRITICAL(Render_Vulkan, "Device lost during submit: {}", err.what());
@@ -151,6 +153,7 @@ void MasterSemaphoreFence::SubmitWork(vk::CommandBuffer cmdbuf, vk::Semaphore wa
 
     vk::UniqueFence fence{GetFreeFence()};
     try {
+        std::scoped_lock vr_lock{GetVrQueueMutex()};
         instance.GetGraphicsQueue().submit(submit_info, *fence);
     } catch (vk::DeviceLostError& err) {
         LOG_CRITICAL(Render_Vulkan, "Device lost during submit: {}", err.what());

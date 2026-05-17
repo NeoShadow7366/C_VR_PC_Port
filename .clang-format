@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Scoped to src/vr_platform/ and src/citra_vr/ via the pre-commit hook.
+# Matches the coding style already in use in those directories:
+#   - 4-space indentation, no tabs
+#   - 100-column limit
+#   - LLVM brace style (opening brace on same line for functions/classes)
+#   - Constructor initialiser lists: break before each comma
+#   - Pointer / reference alignment: left (Type* ptr)
+---
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 100
+
+# Brace placement
+BreakBeforeBraces: Attach
+
+# Pointer/reference alignment
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# Constructor initialiser lists
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+
+# Include sorting
+SortIncludes: CaseInsensitive
+IncludeBlocks: Regroup
+
+# Trailing commas, spaces
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyBlock: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Keep short functions / lambdas inline
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+
+# C++ specific
+Standard: c++20

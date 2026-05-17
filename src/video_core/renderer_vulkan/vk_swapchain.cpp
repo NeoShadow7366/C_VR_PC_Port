@@ -17,6 +17,20 @@ namespace Vulkan {
 
 Swapchain::Swapchain(const Instance& instance_, u32 width, u32 height, vk::SurfaceKHR surface_)
     : instance{instance_}, surface{surface_} {
+    if (!surface_) {
+        // Headless mode (e.g. SteamVR backend): no WSI surface to bind
+        // to. PresentWindow allocates its own off-screen images and
+        // only ever queries our `surface_format` and `image_count`.
+        surface_format.format     = vk::Format::eR8G8B8A8Unorm;
+        surface_format.colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear;
+        present_mode              = vk::PresentModeKHR::eFifo;
+        extent                    = vk::Extent2D{width, height};
+        image_count               = 3;
+        this->width               = width;
+        this->height              = height;
+        needs_recreation          = false;
+        return;
+    }
     FindPresentFormat();
     SetPresentMode();
     Create(width, height, surface);
@@ -24,7 +38,9 @@ Swapchain::Swapchain(const Instance& instance_, u32 width, u32 height, vk::Surfa
 
 Swapchain::~Swapchain() {
     Destroy();
-    instance.GetInstance().destroySurfaceKHR(surface);
+    if (surface) {
+        instance.GetInstance().destroySurfaceKHR(surface);
+    }
 }
 
 void Swapchain::Create(u32 width_, u32 height_, vk::SurfaceKHR surface_) {
@@ -32,6 +48,13 @@ void Swapchain::Create(u32 width_, u32 height_, vk::SurfaceKHR surface_) {
     height = height_;
     surface = surface_;
     needs_recreation = false;
+
+    if (!surface) {
+        // Headless: nothing to (re)create.
+        extent      = vk::Extent2D{width_, height_};
+        image_count = std::max<u32>(image_count, 3);
+        return;
+    }
 
     Destroy();
 
@@ -115,6 +138,9 @@ void Swapchain::Present() {
     };
 
     MICROPROFILE_SCOPE(Vulkan_Present);
+    // Caller (PresentWindow::PresentTextureWithSwapchain) holds the VR queue
+    // mutex around this call, so vkQueuePresentKHR is already serialised
+    // against the OpenXR runtime's queue submissions.
     try {
         [[maybe_unused]] vk::Result result = instance.GetPresentQueue().presentKHR(present_info);
     } catch (vk::OutOfDateKHRError&) {
@@ -228,9 +254,13 @@ void Swapchain::Destroy() {
     if (swapchain) {
         device.destroySwapchainKHR(swapchain);
     }
-    for (u32 i = 0; i < image_count; i++) {
-        device.destroySemaphore(image_acquired[i]);
-        device.destroySemaphore(present_ready[i]);
+    // Headless mode never populates these vectors; iterate by actual size
+    // rather than image_count so the destructor stays safe in both paths.
+    for (auto& sem : image_acquired) {
+        device.destroySemaphore(sem);
+    }
+    for (auto& sem : present_ready) {
+        device.destroySemaphore(sem);
     }
     image_acquired.clear();
     present_ready.clear();

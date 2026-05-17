@@ -6,9 +6,11 @@
 #include <memory>
 #include <thread>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFutureWatcher>
 #include <QLabel>
 #include <QMessageBox>
+#include <QProcess>
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrentMap>
 #include <QtConcurrent/QtConcurrentRun>
@@ -903,6 +905,7 @@ void GMainWindow::ConnectMenuEvents() {
     connect_menu(ui->action_Pause, &GMainWindow::OnPauseContinueGame);
     connect_menu(ui->action_Stop, &GMainWindow::OnStopGame);
     connect_menu(ui->action_Restart, [this] { BootGame(QString(game_path)); });
+    connect_menu(ui->action_Launch_VR, &GMainWindow::OnLaunchVR);
     connect_menu(ui->action_Report_Compatibility, &GMainWindow::OnMenuReportCompatibility);
     connect_menu(ui->action_Configure, &GMainWindow::OnConfigure);
     connect_menu(ui->action_Configure_Current_Game, &GMainWindow::OnConfigurePerGame);
@@ -1994,6 +1997,48 @@ void GMainWindow::OnMenuReportCompatibility() {
         QMessageBox::critical(this, tr("Missing Citra Account"),
                               tr("You must link your Citra account to submit test cases."
                                  "<br/>Go to Emulation &gt; Configure... &gt; Web to do so."));
+    }
+}
+
+void GMainWindow::OnLaunchVR() {
+    // Locate the SteamVR companion launcher next to citra-qt.exe.
+    const QString exeDir = QCoreApplication::applicationDirPath();
+#ifdef _WIN32
+    const QString vrExe = exeDir + QStringLiteral("/citra_vr.exe");
+#else
+    const QString vrExe = exeDir + QStringLiteral("/citra_vr");
+#endif
+    if (!QFileInfo::exists(vrExe)) {
+        QMessageBox::warning(
+            this, tr("Launch in VR"),
+            tr("Companion launcher not found:<br/><tt>%1</tt><br/><br/>"
+               "Build the <b>citra_vr</b> target and place it next to citra-qt.")
+                .arg(vrExe));
+        return;
+    }
+
+    QString rom = game_path;
+    if (rom.isEmpty()) {
+        // citra_vr.exe needs a ROM to bring up its XR session; the in-VR
+        // ROM browser is only reachable via sentinel-restart from the
+        // in-headset menu. Prompt the user for a ROM up-front.
+        const QString extensions = QStringLiteral("*.").append(
+            GameList::supported_file_extensions.join(QStringLiteral(" *.")));
+        const QString file_filter =
+            tr("3DS Executable (%1);;All Files (*.*)").arg(extensions);
+        rom = QFileDialog::getOpenFileName(this, tr("Launch in VR - select ROM"),
+                                           UISettings::values.roms_path, file_filter);
+        if (rom.isEmpty()) {
+            return; // user cancelled
+        }
+    }
+
+    QStringList passArgs;
+    passArgs << rom;
+
+    if (!QProcess::startDetached(vrExe, passArgs)) {
+        QMessageBox::critical(this, tr("Launch in VR"),
+                              tr("Failed to start the VR companion process."));
     }
 }
 
@@ -3188,6 +3233,60 @@ int main(int argc, char* argv[]) {
     Common::DetachedTasks detached_tasks;
     MicroProfileOnThreadCreate("Frontend");
     SCOPE_EXIT({ MicroProfileShutdown(); });
+
+    // --vr: hand off to the SteamVR launcher (citra_vr.exe) and exit.
+    // The flag may appear anywhere in argv; all other args are forwarded
+    // (e.g. a positional ROM path, or `--loadslot N`/`-l N`). If no
+    // positional ROM was supplied, we pop a Qt file picker — citra_vr
+    // requires a ROM to bring up its XR session.
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--vr") != 0) {
+            continue;
+        }
+        QString exeDir = QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath();
+#ifdef _WIN32
+        QString vrExe = exeDir + QStringLiteral("/citra_vr.exe");
+#else
+        QString vrExe = exeDir + QStringLiteral("/citra_vr");
+#endif
+        if (!QFileInfo::exists(vrExe)) {
+            std::fprintf(stderr,
+                         "citra-qt --vr: companion launcher not found at %s\n",
+                         vrExe.toLocal8Bit().constData());
+            return 1;
+        }
+        QStringList passArgs;
+        bool hasRom = false;
+        for (int j = 1; j < argc; ++j) {
+            if (std::strcmp(argv[j], "--vr") == 0) {
+                continue;
+            }
+            const QString a = QString::fromLocal8Bit(argv[j]);
+            // Treat any non-flag token as a positional ROM. (--loadslot
+            // takes its own value via the next argv entry, but we don't
+            // need to mis-flag it here — only the absence of any ROM
+            // matters.)
+            if (!a.startsWith(QLatin1Char('-'))) {
+                hasRom = true;
+            }
+            passArgs << a;
+        }
+        if (!hasRom) {
+            // Need a QApplication for QFileDialog. argc/argv are still
+            // valid; Qt will consume only its own platform args.
+            QApplication picker_app(argc, argv);
+            const QString rom = QFileDialog::getOpenFileName(
+                nullptr, QObject::tr("Launch in VR - select ROM"), QString(),
+                QObject::tr("3DS Executable (*.3ds *.cci *.cxi *.app *.elf *.axf *.3dsx);;"
+                            "All Files (*.*)"));
+            if (rom.isEmpty()) {
+                return 0; // user cancelled
+            }
+            passArgs << rom;
+        }
+        const bool ok = QProcess::startDetached(vrExe, passArgs);
+        return ok ? 0 : 2;
+    }
 
     // Init settings params
     QCoreApplication::setOrganizationName(QStringLiteral("Citra team"));

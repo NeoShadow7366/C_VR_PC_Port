@@ -59,6 +59,13 @@ RasterizerAccelerated::HardwareVertex::HardwareVertex(const Pica::OutputVertex& 
 RasterizerAccelerated::RasterizerAccelerated(Memory::MemorySystem& memory_, Pica::PicaCore& pica_)
     : memory{memory_}, pica{pica_}, regs{pica.regs.internal} {
     fs_uniform_block_data.lighting_lut_dirty.fill(true);
+    // Initialize Super-Immersive uniform to 1.0; the shader unconditionally
+    // executes `gl_Position.xy /= vr_immersive_mode_factor;` so a default 0
+    // produces NaN positions and clips every vertex (= entire frame black).
+    // The Android VR frontend overrides this via SetVRData(); the SteamVR /
+    // PCVR frontend never calls it, so we must seed a safe default here.
+    vs_uniform_block_data.data.vr_immersive_mode_factor = 1.0f;
+    vs_uniform_block_data.dirty = true;
 }
 
 /**
@@ -1135,7 +1142,7 @@ void RasterizerAccelerated::ApplyVRDataToPicaVSUniforms(Pica::Shader::Generator:
             }
         }
 
-        if (viewMatrixIndex != -1 && vs_uniforms.uniforms.f.size() > viewMatrixIndex)
+        if (viewMatrixIndex != -1 && vs_uniforms.uniforms.f.size() > static_cast<std::size_t>(viewMatrixIndex))
         {
             if (matrixMode == 2)
             {
@@ -1167,8 +1174,8 @@ void RasterizerAccelerated::ApplyVRDataToPicaVSUniforms(Pica::Shader::Generator:
                 //
                 // The pair of values (e.g "87,2") represents the offset of the Vec4f in the vs pica uniforms and the
                 // index into that Vec4 of the value that is check for: -ve for left eye and +ve for right eye
-                float eye_indicator_register = vr_heuristic.eye_indicator_register;
-                float eye_indicator_reg_index = vr_heuristic.eye_indicator_reg_index;
+                float eye_indicator_register = static_cast<float>(vr_heuristic.eye_indicator_register);
+                float eye_indicator_reg_index = static_cast<float>(vr_heuristic.eye_indicator_reg_index);
                 //If the user _has_ defined this (unlikely!) then use the config setting
                 if (!findLeftRightEyeIndicator)
                 {
@@ -1177,8 +1184,8 @@ void RasterizerAccelerated::ApplyVRDataToPicaVSUniforms(Pica::Shader::Generator:
                     // will need to find and specify this config, but is still available to set if it fails to work for
                     // a game and someone identifies the appropriate values
                     const std::string vr_immersive_eye_indicator = Settings::values.vr_immersive_eye_indicator.GetValue();
-                    eye_indicator_register = atoi(vr_immersive_eye_indicator.substr(0, vr_immersive_eye_indicator.find_first_of(',')).c_str());
-                    eye_indicator_reg_index = atoi(vr_immersive_eye_indicator.substr(vr_immersive_eye_indicator.find_first_of(',')+1).c_str());
+                    eye_indicator_register = static_cast<float>(atoi(vr_immersive_eye_indicator.substr(0, vr_immersive_eye_indicator.find_first_of(',')).c_str()));
+                    eye_indicator_reg_index = static_cast<float>(atoi(vr_immersive_eye_indicator.substr(vr_immersive_eye_indicator.find_first_of(',')+1).c_str()));
                 }
 
                 //If we found/know a viable register/index, then use it for left/right eye logic
@@ -1187,9 +1194,9 @@ void RasterizerAccelerated::ApplyVRDataToPicaVSUniforms(Pica::Shader::Generator:
                         eye_indicator_register < vs_uniforms.uniforms.f.size() &&
                         (eye_indicator_register < viewMatrixIndex ||
                             eye_indicator_register > viewMatrixIndex + 3) &&
-                        f[eye_indicator_register][eye_indicator_reg_index] != 0.0f)
+                        f[static_cast<std::size_t>(eye_indicator_register)][static_cast<std::size_t>(eye_indicator_reg_index)] != 0.0f)
                 {
-                    const bool isLeftEye = (f[eye_indicator_register][eye_indicator_reg_index] < 0.f);
+                    const bool isLeftEye = (f[static_cast<std::size_t>(eye_indicator_register)][static_cast<std::size_t>(eye_indicator_reg_index)] < 0.f);
                     f[viewMatrixIndex][3] +=
                             vr_game_pos_scaler * (isLeftEye ? -1 : 1) * (VR_IPD / 2.f);
                 }

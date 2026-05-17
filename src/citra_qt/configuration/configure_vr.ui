@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ConfigureVR</class>
+ <widget class="QWidget" name="ConfigureVR">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>520</width>
+    <height>460</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="root_layout">
+   <item>
+    <widget class="QGroupBox" name="group_headset">
+     <property name="title">
+      <string>Headset</string>
+     </property>
+     <layout class="QFormLayout" name="form_headset">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_hmd">
+        <property name="text">
+         <string>HMD profile:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="combo_hmd">
+        <item>
+         <property name="text">
+          <string>Auto-detect</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Bigscreen Beyond 2</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Valve Index</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>HTC Vive Pro</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Generic PCVR</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_resolution">
+        <property name="text">
+         <string>Render scale:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="combo_resolution">
+        <item>
+         <property name="text">
+          <string>Auto (per-HMD default)</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>1x</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>2x</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>3x</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>4x</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>5x</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>6x</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="group_immersive">
+     <property name="title">
+      <string>Immersive Mode</string>
+     </property>
+     <layout class="QFormLayout" name="form_immersive">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_immersive">
+        <property name="text">
+         <string>Mode:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="combo_immersive">
+        <item>
+         <property name="text">
+          <string>Off (flat-quad screens)</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>High</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Ultra</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_factor3d">
+        <property name="text">
+         <string>3D separation (%):</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QSpinBox" name="spin_factor3d">
+        <property name="minimum">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <number>200</number>
+        </property>
+        <property name="singleStep">
+         <number>5</number>
+        </property>
+        <property name="value">
+         <number>100</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="group_input">
+     <property name="title">
+      <string>Controllers</string>
+     </property>
+     <layout class="QVBoxLayout" name="layout_input">
+      <item>
+       <widget class="QCheckBox" name="check_hand_tracking">
+        <property name="text">
+         <string>Enable hand tracking (Knuckles capacitive)</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="check_haptics">
+        <property name="text">
+         <string>Enable haptic feedback</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_note">
+     <property name="text">
+      <string>These preferences are written to vr_config.txt next to your Citra user directory and applied at the next launch of citra_vr.exe.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="spacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

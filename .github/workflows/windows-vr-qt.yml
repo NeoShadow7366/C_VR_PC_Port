@@ -1,0 +1,191 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# windows-vr-qt.yml — CI for the CitraVR SteamVR port.
+#
+# Three jobs:
+#   build-vr    : configures via `cmake --preset vr`  → builds citra_vr.exe
+#   build-qt    : configures via `cmake --preset qt`  → builds citra-qt.exe
+#   smoke-test  : downloads build-vr artifact, runs headless selftest (no HMD)
+#
+# Both build jobs:
+#   - install the Vulkan SDK (humbletim/setup-vulkan-sdk)
+#   - enable sccache for fast incremental CI builds (mozilla-actions/sccache-action)
+#   - upload the resulting executable as a workflow artifact
+
+name: Windows — VR & Qt build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# Cancel in-flight runs on the same branch/PR so only the latest commit builds.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Tell sccache to use the GitHub Actions cache backend.
+  SCCACHE_GHA_ENABLED: "true"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: citra_vr — SteamVR / OpenXR standalone executable
+  # ---------------------------------------------------------------------------
+  build-vr:
+    name: "citra_vr (VR / OpenXR)"
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          # Pinned to a recent stable SDK; update as needed.
+          vulkan-query-version: 1.4.304.1
+          # Loader (vulkan-1.lib) + glslang (shader compiler) are both required.
+          vulkan-components: Vulkan-Headers, Vulkan-Loader, glslang
+          vulkan-use-cache: true
+
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
+      # CMakeLists.txt auto-detects sccache via find_program(SCCACHE sccache) and
+      # sets CMAKE_C/CXX_COMPILER_LAUNCHER when it is found on PATH.
+      - name: Configure (VR preset)
+        run: cmake --preset vr
+
+      - name: Build citra_vr
+        run: cmake --build --preset vr
+
+      - name: Print sccache stats
+        run: sccache --show-stats
+
+      - name: Upload citra_vr artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: citra_vr-windows-x64
+          path: build-vr/bin/Release/citra_vr.exe
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Job 2: citra-qt — Qt desktop frontend (includes "Launch in VR" entry)
+  # ---------------------------------------------------------------------------
+  build-qt:
+    name: "citra-qt (Qt frontend)"
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: 1.4.304.1
+          vulkan-components: Vulkan-Headers, Vulkan-Loader, glslang
+          vulkan-use-cache: true
+
+      # Cache the Qt 6.6.0 download so we don't re-download on every run.
+      # Qt is downloaded by CMake's DownloadExternals.cmake during configure.
+      # Key is stable (Qt version + toolchain + OS) so hits are maximised.
+      - name: Cache Qt 6.6.0 download
+        uses: actions/cache@v4
+        with:
+          path: build/externals/qt
+          key: qt-6.6.0-msvc2019_64-${{ runner.os }}
+
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
+      - name: Configure (Qt preset)
+        run: cmake --preset qt
+
+      - name: Build citra-qt
+        run: cmake --build --preset qt
+
+      - name: Print sccache stats
+        run: sccache --show-stats
+
+      - name: Upload citra-qt artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: citra-qt-windows-x64
+          path: build/bin/Release/citra-qt.exe
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Job 3: smoke-test — headless selftest (no SteamVR, no HMD required)
+  #
+  # Downloads the build-vr artifact, downloads a tiny public-domain homebrew
+  # .3dsx, and runs:
+  #   citra_vr.exe --selftest --frames 30 hello.3dsx
+  # Exit 0 = pass. Covers: logging, settings, input init, ROM load, Vulkan
+  # renderer creation (headless), and 30 frames of 3DS emulation.
+  # ---------------------------------------------------------------------------
+  smoke-test:
+    name: "citra_vr smoke-test (headless)"
+    runs-on: windows-2022
+    needs: build-vr
+
+    steps:
+      - name: Download citra_vr artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: citra_vr-windows-x64
+          path: bin
+
+      - name: Install Vulkan Runtime (needed by citra_vr.exe at run time)
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: 1.4.304.1
+          vulkan-components: Vulkan-Headers, Vulkan-Loader
+          vulkan-use-cache: true
+
+      # Cache the test ROM so we don't re-download on every run.
+      # URL: devkitPro 3DS hello-world, public domain (zlib license).
+      # Pin the exact commit hash in the filename for reproducibility.
+      - name: Cache test ROM
+        id: cache-rom
+        uses: actions/cache@v4
+        with:
+          path: tests/data/hello.3dsx
+          key: hello-3dsx-v1
+
+      - name: Download test ROM
+        if: steps.cache-rom.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force tests/data | Out-Null
+          # devkitPro 3ds-examples: graphics/printing example built .3dsx
+          # This is a stable public-domain build from the devkitPro release page.
+          $url = "https://github.com/devkitPro/3ds-examples/releases/download/v20230525/3ds-examples-20230525.zip"
+          Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\3ds-examples.zip" -UseBasicParsing
+          Expand-Archive -Path "$env:TEMP\3ds-examples.zip" -DestinationPath "$env:TEMP\3ds-examples"
+          # Use the hello_world.3dsx from the graphics/printing example.
+          $src = Get-ChildItem -Recurse -Filter "*.3dsx" "$env:TEMP\3ds-examples" | Select-Object -First 1
+          Copy-Item $src.FullName tests/data/hello.3dsx
+          Write-Host "Test ROM: $($src.FullName) -> tests/data/hello.3dsx ($((Get-Item tests/data/hello.3dsx).Length) bytes)"
+
+      - name: Run selftest (headless, 30 frames)
+        shell: pwsh
+        run: |
+          $exe = "bin\citra_vr.exe"
+          $rom = "tests\data\hello.3dsx"
+          Write-Host "Running: $exe --selftest --frames 30 $rom"
+          $proc = Start-Process -FilePath $exe `
+            -ArgumentList "--selftest", "--frames", "30", $rom `
+            -Wait -PassThru -NoNewWindow
+          Write-Host "Exit code: $($proc.ExitCode)"
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "Smoke test FAILED (exit $($proc.ExitCode))"
+            exit 1
+          }
+          Write-Host "Smoke test PASSED"

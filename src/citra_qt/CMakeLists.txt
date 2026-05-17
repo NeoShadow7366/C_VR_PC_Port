@@ -81,6 +81,9 @@ add_executable(citra-qt
     configuration/configure_ui.cpp
     configuration/configure_ui.h
     configuration/configure_ui.ui
+    configuration/configure_vr.cpp
+    configuration/configure_vr.h
+    configuration/configure_vr.ui
     configuration/configure_web.cpp
     configuration/configure_web.h
     configuration/configure_web.ui
@@ -309,6 +312,13 @@ endif()
 
 if (ENABLE_VULKAN)
     target_link_libraries(citra-qt PRIVATE vulkan-headers)
+    # Some transitive dep (e.g. Qt6Gui finding the system Vulkan SDK)
+    # injects $VULKAN_SDK/include into the include path BEFORE the
+    # externals headers. That ships a newer vulkan-hpp whose dispatcher
+    # storage symbol lives in `vk::detail::`, mismatching video_core's
+    # externals copy (which puts it in `vk::`). Force our copy first.
+    target_include_directories(citra-qt BEFORE PRIVATE
+        ${CMAKE_SOURCE_DIR}/externals/vulkan-headers/include)
 endif()
 
 if (NOT WIN32)

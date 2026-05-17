@@ -1,0 +1,81 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "_base",
+      "hidden": true,
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build-${presetName}",
+      "cacheVariables": {
+        "CITRA_USE_PRECOMPILED_HEADERS": "ON",
+        "CITRA_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "vr",
+      "displayName": "VR (SteamVR/OpenXR) — citra_vr.exe",
+      "description": "Builds the standalone citra_vr.exe with the SteamVR/OpenXR + Vulkan backend. No Qt frontend.",
+      "inherits": "_base",
+      "binaryDir": "${sourceDir}/build-vr",
+      "cacheVariables": {
+        "ENABLE_VR": "ON",
+        "VR_BACKEND_STEAMVR": "ON",
+        "ENABLE_QT": "OFF",
+        "ENABLE_QT_TRANSLATION": "OFF",
+        "ENABLE_SDL2": "OFF",
+        "ENABLE_TESTS": "OFF",
+        "ENABLE_DEDICATED_ROOM": "OFF"
+      }
+    },
+    {
+      "name": "qt",
+      "displayName": "Qt frontend — citra-qt.exe (with --vr launcher)",
+      "description": "Builds the Qt desktop frontend including the 'Launch in VR' menu and --vr CLI flag. citra_vr.exe must be built separately via the 'vr' preset.",
+      "inherits": "_base",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "ENABLE_QT": "ON",
+        "ENABLE_SDL2_FRONTEND": "ON",
+        "ENABLE_VR": "OFF",
+        "VR_BACKEND_STEAMVR": "OFF"
+      }
+    },
+    {
+      "name": "vr-debug",
+      "displayName": "VR (Debug)",
+      "description": "Same as 'vr' but Debug-friendly: PCH off, no warnings-as-errors, LTO off. Uses build-vr-debug/ to keep the Release build cache intact.",
+      "inherits": "vr",
+      "binaryDir": "${sourceDir}/build-vr-debug",
+      "cacheVariables": {
+        "CITRA_USE_PRECOMPILED_HEADERS": "OFF",
+        "CITRA_WARNINGS_AS_ERRORS": "OFF",
+        "ENABLE_LTO": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "vr",
+      "displayName": "VR Release",
+      "configurePreset": "vr",
+      "configuration": "Release",
+      "targets": ["citra_vr"]
+    },
+    {
+      "name": "vr-debug",
+      "displayName": "VR Debug",
+      "configurePreset": "vr-debug",
+      "configuration": "Debug",
+      "targets": ["citra_vr"]
+    },
+    {
+      "name": "qt",
+      "displayName": "citra-qt Release",
+      "configurePreset": "qt",
+      "configuration": "Release",
+      "targets": ["citra-qt"]
+    }
+  ]
+}

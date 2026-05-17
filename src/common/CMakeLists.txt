@@ -119,6 +119,8 @@ add_library(citra_common STATIC
     settings.cpp
     settings.h
     slot_vector.h
+    vr_config.cpp
+    vr_config.h
     serialization/atomic.h
     serialization/boost_discrete_interval.hpp
     serialization/boost_flat_set.h

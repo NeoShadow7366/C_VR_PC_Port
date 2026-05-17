@@ -110,6 +110,8 @@
     <addaction name="action_Stop"/>
     <addaction name="action_Restart"/>
     <addaction name="separator"/>
+    <addaction name="action_Launch_VR"/>
+    <addaction name="separator"/>
     <addaction name="menu_Load_State"/>
     <addaction name="menu_Save_State"/>
     <addaction name="separator"/>
@@ -567,6 +569,14 @@
    </property>
    <property name="text">
     <string>Restart</string>
+   </property>
+  </action>
+  <action name="action_Launch_VR">
+   <property name="text">
+    <string>Launch in &amp;VR (SteamVR)</string>
+   </property>
+   <property name="toolTip">
+    <string>Launch the SteamVR companion (citra_vr.exe). Pass a ROM via File &gt; Boot beforehand to load it in VR.</string>
    </property>
   </action>
   <action name="action_Load_Amiibo">

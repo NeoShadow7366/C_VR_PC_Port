@@ -11,6 +11,7 @@
 #include "video_core/renderer_vulkan/vk_present_window.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 #include "video_core/renderer_vulkan/vk_swapchain.h"
+#include "video_core/renderer_vulkan/vk_vr_hooks.h"
 #include "vk_platform.h"
 
 #include <vk_mem_alloc.h>
@@ -108,7 +109,15 @@ PresentWindow::PresentWindow(Frontend::EmuWindow& emu_window_, const Instance& i
       blit_supported{
           CanBlitToSwapchain(instance.GetPhysicalDevice(), swapchain.GetSurfaceFormat().format)},
       use_present_thread{Settings::values.async_presentation.GetValue()},
+      is_headless{emu_window.GetWindowInfo().type == Frontend::WindowSystemType::Headless},
       last_render_surface{emu_window.GetWindowInfo().render_surface} {
+
+    if (is_headless) {
+        // Headless path forces synchronous Present(); the producer/consumer
+        // handshake in CopyToSwapchain serialises the renderer with the XR
+        // composition thread, so async presentation would deadlock.
+        use_present_thread = false;
+    }
 
     const u32 num_images = swapchain.GetImageCount();
     const vk::Device device = instance.GetDevice();
@@ -132,6 +141,7 @@ PresentWindow::PresentWindow(Frontend::EmuWindow& emu_window_, const Instance& i
         Frame& frame = swap_chain[i];
         frame.cmdbuf = command_buffers[i];
         frame.render_ready = device.createSemaphore({});
+        frame.vr_handoff   = device.createSemaphore({});
         frame.present_done = device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
         free_queue.push(&frame);
     }
@@ -141,6 +151,8 @@ PresentWindow::PresentWindow(Frontend::EmuWindow& emu_window_, const Instance& i
             Vulkan::SetObjectName(device, swap_chain[i].cmdbuf, "Swapchain Command Buffer {}", i);
             Vulkan::SetObjectName(device, swap_chain[i].render_ready,
                                   "Swapchain Semaphore: render_ready {}", i);
+            Vulkan::SetObjectName(device, swap_chain[i].vr_handoff,
+                                  "Swapchain Semaphore: vr_handoff {}", i);
             Vulkan::SetObjectName(device, swap_chain[i].present_done,
                                   "Swapchain Fence: present_done {}", i);
         }
@@ -160,6 +172,7 @@ PresentWindow::~PresentWindow() {
         device.destroyImageView(frame.image_view);
         device.destroyFramebuffer(frame.framebuffer);
         device.destroySemaphore(frame.render_ready);
+        device.destroySemaphore(frame.vr_handoff);
         device.destroyFence(frame.present_done);
         vmaDestroyImage(instance.GetAllocator(), frame.image, frame.allocation);
     }
@@ -344,7 +357,105 @@ void PresentWindow::NotifySurfaceChanged() {
 #endif
 }
 
+void PresentWindow::SetFramePublishCallback(FramePublishCallback callback) {
+    std::lock_guard lk{publish_mutex};
+    frame_publish_callback = std::move(callback);
+}
+
+void PresentWindow::NotifyFrameConsumed() {
+    std::lock_guard lk{publish_mutex};
+    publish_pending = false;
+    publish_cv.notify_one();
+}
+
 void PresentWindow::CopyToSwapchain(Frame* frame) {
+    if (is_headless) {
+        // Wait for the previous published frame to be consumed by the XR
+        // thread (it must have queued its blit and called
+        // NotifyFrameConsumed). This caps emulator throughput at the XR
+        // refresh rate and keeps publish-slot ownership unambiguous.
+        {
+            std::unique_lock lk{publish_mutex};
+            publish_cv.wait(lk, [this] { return !publish_pending; });
+            publish_pending = true;
+        }
+
+        // Hand the frame off to the consumer (e.g. SteamVR's XR thread).
+        //
+        // Sync chain (single-producer / single-consumer):
+        //   1. Renderer submitted draw work signalling `render_ready`
+        //      on graphics_queue.
+        //   2. (Below) we submit a no-op cmdbuf on graphics_queue that
+        //      waits on `render_ready` and signals `vr_handoff`. This
+        //      keeps render_ready confined to its native queue and
+        //      guarantees `vr_handoff`'s signal is queued BEFORE the
+        //      consumer's wait submit hits the VR queue.
+        //   3. Consumer waits on `vr_handoff` from its own VkQueue,
+        //      issues its blit, then signals `present_done` so
+        //      GetRenderFrame() can recycle this slot.
+        if (frame_publish_callback) {
+            const vk::CommandBufferBeginInfo begin_info = {
+                .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+            };
+            const vk::CommandBuffer cmdbuf = frame->cmdbuf;
+            cmdbuf.begin(begin_info);
+            cmdbuf.end();
+            const vk::PipelineStageFlags wait_stage =
+                vk::PipelineStageFlagBits::eAllGraphics;
+            const vk::SubmitInfo submit_info = {
+                .waitSemaphoreCount   = 1,
+                .pWaitSemaphores      = &frame->render_ready,
+                .pWaitDstStageMask    = &wait_stage,
+                .commandBufferCount   = 1,
+                .pCommandBuffers      = &cmdbuf,
+                .signalSemaphoreCount = 1,
+                .pSignalSemaphores    = &frame->vr_handoff,
+            };
+            {
+                std::scoped_lock submit_lock{scheduler.submit_mutex};
+                std::scoped_lock vr_lock{GetVrQueueMutex()};
+                graphics_queue.submit(submit_info);
+            }
+
+            const PublishedFrame info{
+                .image           = static_cast<VkImage>(frame->image),
+                .render_complete = static_cast<VkSemaphore>(frame->vr_handoff),
+                .present_done    = static_cast<VkFence>(frame->present_done),
+                .width           = frame->width,
+                .height          = frame->height,
+            };
+            frame_publish_callback(info);
+        } else {
+            // No consumer attached - submit a no-op that consumes
+            // render_ready and signals present_done so GetRenderFrame()
+            // can keep recycling the slot.
+            const vk::CommandBufferBeginInfo begin_info = {
+                .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+            };
+            const vk::CommandBuffer cmdbuf = frame->cmdbuf;
+            cmdbuf.begin(begin_info);
+            cmdbuf.end();
+            const vk::PipelineStageFlags wait_stage =
+                vk::PipelineStageFlagBits::eAllGraphics;
+            const vk::SubmitInfo submit_info = {
+                .waitSemaphoreCount = 1,
+                .pWaitSemaphores    = &frame->render_ready,
+                .pWaitDstStageMask  = &wait_stage,
+                .commandBufferCount = 1,
+                .pCommandBuffers    = &cmdbuf,
+            };
+            {
+                std::scoped_lock submit_lock{scheduler.submit_mutex};
+                std::scoped_lock vr_lock{GetVrQueueMutex()};
+                graphics_queue.submit(submit_info, frame->present_done);
+            }
+            std::lock_guard lk{publish_mutex};
+            publish_pending = false;
+            publish_cv.notify_one();
+        }
+        return;
+    }
+
     const auto recreate_swapchain = [&] {
 #ifdef ANDROID
         {
@@ -474,6 +585,7 @@ void PresentWindow::CopyToSwapchain(Frame* frame) {
     };
 
     std::scoped_lock submit_lock{scheduler.submit_mutex};
+    std::scoped_lock vr_lock{GetVrQueueMutex()};
 
     try {
         graphics_queue.submit(submit_info, frame->present_done);

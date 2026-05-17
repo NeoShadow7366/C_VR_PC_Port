@@ -3,8 +3,18 @@
 // Refer to the license.txt file included.
 
 #include <stdexcept>
+#include <mutex>
 #include <utility>
 #include <boost/serialization/array.hpp>
+
+// Forward-declared instead of including video_core/renderer_vulkan/vk_vr_hooks.h
+// because that header pulls in <vulkan/vulkan.h>, which citra_core's include
+// path doesn't expose. The busy mutex is defined in vk_vr_hooks.cpp.
+namespace Vulkan {
+std::mutex& GetVrCoreBusyMutex();
+using VrWaitIdleFn = void (*)();
+VrWaitIdleFn GetVrWaitIdleFn();
+} // namespace Vulkan
 #include "audio_core/dsp_interface.h"
 #include "audio_core/hle/hle.h"
 #include "audio_core/lle/lle.h"
@@ -119,6 +129,14 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
     case Signal::Load: {
         const u32 slot = param;
         LOG_INFO(Core, "Begin load of slot {}", slot);
+        // Block the VR composite thread while we destroy & rebuild
+        // renderer-owned images; otherwise its blit can dereference
+        // freed VkImages and crash with an access violation.
+        std::scoped_lock vr_busy{Vulkan::GetVrCoreBusyMutex()};
+        // Flush any GPU work the VR thread submitted before we held the
+        // lock so the GPU isn't still reading the images we're about to
+        // destroy.
+        if (auto wait = Vulkan::GetVrWaitIdleFn()) wait();
         try {
             System::LoadState(slot);
             LOG_INFO(Core, "Load completed");
@@ -133,6 +151,8 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
     case Signal::Save: {
         const u32 slot = param;
         LOG_INFO(Core, "Begin save to slot {}", slot);
+        std::scoped_lock vr_busy{Vulkan::GetVrCoreBusyMutex()};
+        if (auto wait = Vulkan::GetVrWaitIdleFn()) wait();
         try {
             System::SaveState(slot);
             LOG_INFO(Core, "Save completed");
@@ -296,6 +316,8 @@ System::ResultStatus System::Load(Frontend::EmuWindow& emu_window, const std::st
         return init_result;
     }
 
+    LOG_INFO(Core, "System::Load: Init succeeded");
+
     // Restore any parameters that should be carried through a reset.
     if (restore_deliver_arg.has_value()) {
         if (auto apt = Service::APT::GetModule(*this)) {
@@ -310,9 +332,12 @@ System::ResultStatus System::Load(Frontend::EmuWindow& emu_window, const std::st
         restore_plugin_context.reset();
     }
 
+    LOG_INFO(Core, "System::Load: telemetry AddInitialInfo");
     telemetry_session->AddInitialInfo(*app_loader);
     std::shared_ptr<Kernel::Process> process;
+    LOG_INFO(Core, "System::Load: app_loader->Load");
     const Loader::ResultStatus load_result{app_loader->Load(process)};
+    LOG_INFO(Core, "System::Load: app_loader->Load returned {}", static_cast<int>(load_result));
     if (Loader::ResultStatus::Success != load_result) {
         LOG_CRITICAL(Core, "Failed to load ROM (Error {})!", load_result);
         System::Shutdown();
@@ -449,8 +474,11 @@ System::ResultStatus System::Init(Frontend::EmuWindow& emu_window,
     service_manager = std::make_unique<Service::SM::ServiceManager>(*this);
     archive_manager = std::make_unique<Service::FS::ArchiveManager>(*this);
 
+    LOG_INFO(Core, "core.Init: HW::AES::InitKeys");
     HW::AES::InitKeys();
+    LOG_INFO(Core, "core.Init: Service::Init");
     Service::Init(*this);
+    LOG_INFO(Core, "core.Init: GDBStub::DeferStart");
     GDBStub::DeferStart();
 
     if (!registered_image_interface) {
@@ -703,7 +731,7 @@ void System::serialize(Archive& ar, const unsigned int file_version) {
     }
     ar& num_cores;
 
-    if (Archive::is_loading::value) {
+    if (Archive::is_loading::value && !skip_shutdown_on_load) {
         // When loading, we want to make sure any lingering state gets cleared out before we begin.
         // Shutdown, but persist a few things between loads...
         Shutdown(true);

@@ -2,8 +2,11 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#pragma once
+
 #include <atomic>
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <queue>
 #include "common/polyfill_thread.h"
@@ -30,6 +33,9 @@ struct Frame {
     vk::Image image;
     vk::ImageView image_view;
     vk::Semaphore render_ready;
+    vk::Semaphore vr_handoff;   // headless: signaled on graphics_queue after
+                                // render_ready is consumed; VR thread waits
+                                // on this from its own queue.
     vk::Fence present_done;
     vk::CommandBuffer cmdbuf;
 };
@@ -63,6 +69,36 @@ public:
         return swapchain.GetImageCount();
     }
 
+    // ----- Headless / OpenXR composition support --------------------
+    //
+    // When the PresentWindow is constructed against an EmuWindow whose
+    // WindowSystemType is `Headless`, no Win32/X11/Wayland surface is
+    // created and no `vk::SwapchainKHR` is built. Instead, finished
+    // frames are handed to a registered callback (typically the SteamVR
+    // backend's `EmuWindow_VR_Win`) which composites them into the XR
+    // swapchain on a separate thread.
+    //
+    // Synchronisation is a 1-deep producer/consumer handshake:
+    //   * The renderer thread blocks inside CopyToSwapchain until the
+    //     consumer has called NotifyFrameConsumed(), guaranteeing the
+    //     consumer's GPU work that reads the published `VkImage` has
+    //     been submitted.
+    //   * The consumer must call NotifyFrameConsumed() exactly once per
+    //     published frame, after queueing its blit command buffer.
+
+    struct PublishedFrame {
+        VkImage     image           = VK_NULL_HANDLE;
+        VkSemaphore render_complete = VK_NULL_HANDLE;
+        VkFence     present_done    = VK_NULL_HANDLE;
+        u32         width           = 0;
+        u32         height          = 0;
+    };
+    using FramePublishCallback = std::function<void(const PublishedFrame&)>;
+
+    void SetFramePublishCallback(FramePublishCallback callback);
+    void NotifyFrameConsumed();
+    bool IsHeadless() const { return is_headless; }
+
 private:
     void PresentThread(std::stop_token token);
 
@@ -94,7 +130,14 @@ private:
     bool vsync_enabled{};
     bool blit_supported;
     bool use_present_thread{true};
+    bool is_headless{false};
     void* last_render_surface{};
+
+    // Headless publish handshake.
+    FramePublishCallback frame_publish_callback;
+    std::mutex publish_mutex;
+    std::condition_variable publish_cv;
+    bool publish_pending{false};
 };
 
 } // namespace Vulkan

@@ -13,6 +13,7 @@
 #include "video_core/custom_textures/custom_format.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_platform.h"
+#include "video_core/renderer_vulkan/vk_vr_hooks.h"
 
 #include <vk_mem_alloc.h>
 
@@ -152,6 +153,19 @@ Instance::Instance(Core::TelemetrySession& telemetry, Frontend::EmuWindow& windo
                physical_device_index, num_physical_devices);
 
     physical_device = physical_devices[physical_device_index];
+
+    // If a VR runtime has installed hooks, force the physical device to the
+    // one the runtime expects (xrCreateSession will reject any other GPU).
+    if (const auto* hooks = GetVrHooks(); hooks && hooks->get_physical_device) {
+        VkPhysicalDevice xr_phys = VK_NULL_HANDLE;
+        const VkResult res = hooks->get_physical_device(*instance, &xr_phys);
+        if (res != VK_SUCCESS || xr_phys == VK_NULL_HANDLE) {
+            throw std::runtime_error(fmt::format(
+                "VR hook get_physical_device failed: VkResult={}", static_cast<int>(res)));
+        }
+        physical_device = vk::PhysicalDevice(xr_phys);
+    }
+
     available_extensions = GetSupportedExtensions(physical_device);
     properties = physical_device.getProperties();
     if (properties.apiVersion < TargetVulkanApiVersion) {
@@ -610,7 +624,23 @@ bool Instance::CreateDevice() {
 #undef FEAT_SET
 
     try {
-        device = physical_device.createDeviceUnique(device_chain.get());
+        if (const auto* hooks = GetVrHooks(); hooks && hooks->create_device) {
+            // Hand the runtime the chained CreateInfo so it can append any
+            // device extensions it requires. The chain head is a
+            // VkDeviceCreateInfo (vk::StructureChain guarantees this).
+            const VkDeviceCreateInfo c_ci = device_chain.get<vk::DeviceCreateInfo>();
+            VkDevice raw_device = VK_NULL_HANDLE;
+            const VkResult res =
+                hooks->create_device(physical_device, &c_ci, nullptr, &raw_device);
+            if (res != VK_SUCCESS || raw_device == VK_NULL_HANDLE) {
+                LOG_CRITICAL(Render_Vulkan, "VR hook create_device failed: VkResult={}",
+                             static_cast<int>(res));
+                return false;
+            }
+            device = vk::UniqueDevice(vk::Device(raw_device));
+        } else {
+            device = physical_device.createDeviceUnique(device_chain.get());
+        }
     } catch (vk::ExtensionNotPresentError& err) {
         LOG_CRITICAL(Render_Vulkan, "Some required extensions are not available {}", err.what());
         return false;

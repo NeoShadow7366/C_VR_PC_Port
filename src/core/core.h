@@ -440,6 +440,14 @@ private:
     u64 title_id;
     bool self_delete_pending;
 
+public:
+    /// When true, System::serialize will skip the Shutdown(true)+Init() cycle
+    /// when loading a state. Used by the VR frontend to apply a pre-XR
+    /// LoadState into a freshly-Loaded System without tearing down the
+    /// brand-new renderer (which crashes for VR-Vulkan instances).
+    bool skip_shutdown_on_load = false;
+
+private:
     std::mutex signal_mutex;
     Signal current_signal;
     u32 signal_param;

@@ -193,6 +193,8 @@ if (ENABLE_VULKAN)
         renderer_vulkan/vk_swapchain.h
         renderer_vulkan/vk_texture_runtime.cpp
         renderer_vulkan/vk_texture_runtime.h
+        renderer_vulkan/vk_vr_hooks.cpp
+        renderer_vulkan/vk_vr_hooks.h
         shader/generator/spv_fs_shader_gen.cpp
         shader/generator/spv_fs_shader_gen.h
     )
