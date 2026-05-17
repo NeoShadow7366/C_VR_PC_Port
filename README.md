@@ -1,15 +1,17 @@
 <h1 align="center">
   <br>
-  <a href="https://citra-emu.org/"><img src="assets/citravr_logo.png" alt="CitraVR" width="500"></a>
+  <a href="https://github.com/NeoShadow7366/C_VR_PC_Port"><img src="dist/steam_art/out/vr/logo_1280x720.png" alt="Sheikah Protocol VR" width="600"></a>
   <br>
-  CitraVR — SteamVR / Windows PC Port
+  Sheikah Protocol VR
+  <br>
+  <sub>An unofficial SteamVR / Windows PC port of <a href="https://github.com/amwatson/CitraVR">CitraVR</a></sub>
   <br>
 </h1>
 
 <h4 align="center">
   Play 3DS homebrew and your personal game backups in stereoscopic 3D on any SteamVR headset.
   <br/>
-  An unofficial Windows/PC port of <a href="https://github.com/amwatson/CitraVR">amwatson/CitraVR</a> built on OpenXR + Vulkan, with no game engine and no proprietary SDKs.
+  Built on OpenXR + Vulkan, with no game engine and no proprietary SDKs.
 </h4>
 
 <p align="center">
