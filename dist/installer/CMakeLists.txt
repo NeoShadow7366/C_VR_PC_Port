@@ -31,24 +31,24 @@ add_custom_command(OUTPUT "${TARGET_FILE}"
 add_custom_target(installer DEPENDS ${TARGET_FILE})
 
 # -----------------------------------------------------------------------------
-# Sheikah Protocol Inno Setup installer (Windows only).
+# NeoXR Citra Inno Setup installer (Windows only).
 # Builds Steam grid art + invokes ISCC to produce
-#   dist/installer/out/SheikahProtocol-Setup-<ver>.exe
+#   dist/installer/out/NeoXRCitra-Setup-<ver>.exe
 #
 # Manual invocation:
-#   cmake --build <build> --target sheikah_installer
+#   cmake --build <build> --target neoxr_installer
 # Requires:
 #   - Inno Setup 6 (ISCC.exe on PATH or under Program Files (x86)\Inno Setup 6)
 #   - Both the qt build (build/) and vr build (build-vr/) already produced.
 # -----------------------------------------------------------------------------
 if(WIN32)
-    add_custom_target(sheikah_installer
+    add_custom_target(neoxr_installer
         COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
             -File "${CMAKE_SOURCE_DIR}/dist/installer/Build-Installer.ps1"
             -RepoRoot "${CMAKE_SOURCE_DIR}"
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        COMMENT "Building Sheikah Protocol [VR] Inno Setup installer"
+        COMMENT "Building NeoXR Citra [VR] Inno Setup installer"
         VERBATIM
     )
-    set_target_properties(sheikah_installer PROPERTIES FOLDER installer)
+    set_target_properties(neoxr_installer PROPERTIES FOLDER installer)
 endif()

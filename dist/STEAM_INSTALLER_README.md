@@ -1,12 +1,12 @@
-# Sheikah Protocol — Windows Installer & Steam Integration
+# NeoXR Citra — Windows Installer & Steam Integration
 
 This directory builds a single-file Inno Setup installer that ships **both**
 desktop entries:
 
 | Entry | Binary | Description |
 |---|---|---|
-| **Sheikah Protocol**    | `citra-qt.exe`            | Flat-screen Citra (3DS emulator), Qt UI. |
-| **Sheikah Protocol VR** | `citra_vr_launcher.exe`   | Tiny shim that starts SteamVR (Steam AppID 250820), waits for `vrserver.exe`, then launches `citra_vr.exe`. |
+| **NeoXR Citra**    | `citra-qt.exe`            | Flat-screen Citra (3DS emulator), Qt UI. |
+| **NeoXR Citra VR** | `citra_vr_launcher.exe`   | Tiny shim that starts SteamVR (Steam AppID 250820), waits for `vrserver.exe`, then launches `citra_vr.exe`. |
 
 The installer optionally registers both entries as non-Steam shortcuts in the
 user's Steam library and deploys grid art (capsule / hero / logo / icon / small
@@ -17,7 +17,7 @@ capsule) so they look identical to native Steam titles.
 ```
 dist/
 ├── installer/
-│   ├── sheikah_protocol.iss      Inno Setup script
+│   ├── neoxr_citra.iss      Inno Setup script
 │   ├── Build-Installer.ps1       One-shot build orchestrator (art + ISCC)
 │   └── out/                      Output .exe lands here
 ├── steam_art/
@@ -44,7 +44,7 @@ dist/
 ## Build the installer
 
 ```powershell
-cmake --build build-vr --target sheikah_installer
+cmake --build build-vr --target neoxr_installer
 ```
 
 …or directly:
@@ -53,17 +53,17 @@ cmake --build build-vr --target sheikah_installer
 .\dist\installer\Build-Installer.ps1 -AppVersion 0.1.0
 ```
 
-Output: `dist\installer\out\SheikahProtocol-Setup-<ver>.exe` (~50 MB).
+Output: `dist\installer\out\NeoXRCitra-Setup-<ver>.exe` (~50 MB).
 
 ## What end-users see
 
-1. They run `SheikahProtocol-Setup-<ver>.exe`. Installs per-user to
-   `%LOCALAPPDATA%\Programs\SheikahProtocol\` — **no admin needed**.
+1. They run `NeoXRCitra-Setup-<ver>.exe`. Installs per-user to
+   `%LOCALAPPDATA%\Programs\NeoXRCitra\` — **no admin needed**.
 2. Wizard tasks page (Steam tasks only appear if Steam is detected):
-   - `[✓]` Desktop shortcut for Sheikah Protocol
-   - `[✓]` Desktop shortcut for Sheikah Protocol VR
-   - `[✓]` Add **Sheikah Protocol** to Steam library
-   - `[✓]` Add **Sheikah Protocol VR** to Steam library *(auto-launches SteamVR)*
+   - `[✓]` Desktop shortcut for NeoXR Citra
+   - `[✓]` Desktop shortcut for NeoXR Citra VR
+   - `[✓]` Add **NeoXR Citra** to Steam library
+   - `[✓]` Add **NeoXR Citra VR** to Steam library *(auto-launches SteamVR)*
 3. After Finish + Steam restart, both entries appear in the user's Steam
    library with full grid art.
 4. Clicking the VR entry: Steam launches `citra_vr_launcher.exe`, which:

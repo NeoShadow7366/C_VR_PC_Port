@@ -1,4 +1,4 @@
-# Build Steam grid art for Citra & Sheikah Protocol VR from source images.
+# Build Steam grid art for Citra & NeoXR Citra VR from source images.
 # Outputs into dist\steam_art\out\{qt,vr}\ in the exact dimensions Steam expects
 # when art is dropped into <Steam>\userdata\<id>\config\grid\.
 #
@@ -31,8 +31,8 @@ function Pick($pattern) {
 # Explicit mapping by current random filenames; falls back to dimension heuristic.
 $mapExplicit = @{
     icon       = '7L14i.jpg'   # rounded-square icon
-    capsule    = 'GP5cj.jpg'   # tall sheikah wall
-    heroVr     = 'et3Ce.jpg'   # Sheikah Protocol + Steam logo in eye
+    capsule    = 'GP5cj.jpg'   # tall ornamental wall
+    heroVr     = 'et3Ce.jpg'   # legacy: has old project name + Steam logo baked in; REPLACE before release
     heroQt     = 'tOPhD.jpg'   # data streams (no Steam logo)
     logoBg     = 'jXIxZ.jpg'   # flat tablet pattern
 }
@@ -300,24 +300,24 @@ function Build-AppArt {
     Build-Ico -sourcePng (Join-Path $outDir 'icon_256.png') -outIco (Join-Path $outDir 'icon.ico')
 }
 
-# Sheikah Protocol (non-VR / Qt)
+# NeoXR Citra (non-VR / Qt)
 Build-AppArt -outDir $outQt `
-    -titleHero  'SHEIKAH PROTOCOL' `
+    -titleHero  'NeoXR Citra' `
     -subtitleHero '3DS Emulator' `
     -heroSrc    $resolved.heroQt `
     -capsuleSrc $resolved.capsule `
     -iconSrc    $resolved.icon `
-    -logoText   'SHEIKAH PROTOCOL' `
+    -logoText   'NeoXR Citra' `
     -preserveHero $false
 
-# Sheikah Protocol VR (already has 'SHEIKAH PROTOCOL' text + Steam logo baked into hero source)
+# NeoXR Citra VR (legacy source still has old project name + Steam logo baked in; replace before release)
 Build-AppArt -outDir $outVr `
-    -titleHero  'SHEIKAH PROTOCOL VR' `
+    -titleHero  'NeoXR Citra VR' `
     -subtitleHero 'SteamVR build' `
     -heroSrc    $resolved.heroVr `
     -capsuleSrc $resolved.capsule `
     -iconSrc    $resolved.icon `
-    -logoText   'SHEIKAH PROTOCOL VR' `
+    -logoText   'NeoXR Citra VR' `
     -preserveHero $true   # source already branded; just crop/resize
 
 Write-Host "`nDone. Outputs:" -ForegroundColor Green

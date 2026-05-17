@@ -7,6 +7,10 @@ in the source tree. The full text of the GNU GPL v3 (the licence that
 covers Citra and CitraVR itself) is in `license.txt` at the repository
 root.
 
+The complete corresponding source code for this binary distribution
+(GPL-3.0 §6) is available at:
+    https://github.com/NeoShadow7366/C_VR_PC_Port
+
 The Citra project itself (and therefore CitraVR, including all VR
 source under `src/vr_platform/` and `src/citra_vr/`) is licensed under:
     GNU General Public License, version 3 or later (GPL-3.0-or-later)
@@ -67,3 +71,25 @@ CitraVR communicates with the Valve SteamVR OpenXR runtime via the
 OpenXR loader. SteamVR itself is NOT distributed with this binary; the
 user must install Steam + SteamVR separately. Linkage is dynamic and at
 runtime only.
+
+
+-- Trademarks --
+
+This project is an independent, non-commercial fan effort and is not
+affiliated with, endorsed by, or sponsored by any of the parties below.
+
+  Nintendo, 3DS, and all associated game titles and characters are
+    trademarks of Nintendo Co., Ltd.
+  Steam, SteamVR, Steam Deck, and the Steam logo are trademarks of
+    Valve Corporation.
+  Bigscreen and Bigscreen Beyond are trademarks of Bigscreen, Inc.
+  Valve Index, Vive, Oculus, Meta Quest, Pimax, Varjo, and Windows
+    Mixed Reality are trademarks of their respective owners.
+  Vulkan, OpenXR, and glslang are trademarks of The Khronos Group Inc.
+  All other trademarks are the property of their respective owners.
+
+Product and game names appear in this project's source, documentation,
+and UI strings strictly for identification and interoperability purposes
+(nominative fair use). This project does not distribute Nintendo ROMs,
+firmware, BIOS, encryption keys, or any other copyrighted Nintendo
+content.

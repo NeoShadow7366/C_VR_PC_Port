@@ -1,7 +1,7 @@
-; SPDX-FileCopyrightText: 2026 CitraVR / Sheikah Protocol authors
+; SPDX-FileCopyrightText: 2026 CitraVR / NeoXR Citra authors
 ; SPDX-License-Identifier: GPL-3.0-or-later
 ;
-; Sheikah Protocol + Sheikah Protocol VR  —  Inno Setup script.
+; NeoXR Citra + NeoXR Citra VR  —  Inno Setup script.
 ;
 ; Bundles:
 ;   - citra-qt.exe + Qt DLLs (flat 3DS emulator)        [from build\bin\Release\]
@@ -9,13 +9,13 @@
 ;   - dist\steam_art\out\{qt,vr}\*                      (Steam grid art)
 ;   - dist\steam_integration\*.ps1 + .psm1              (shortcut writer)
 ;
-; Per-user install to %LOCALAPPDATA%\Programs\SheikahProtocol\ — no admin needed.
+; Per-user install to %LOCALAPPDATA%\Programs\NeoXRCitra\ — no admin needed.
 ;
 ; Build command:
 ;   ISCC.exe /DBUILD_QT="<path>\build\bin\Release"
 ;            /DBUILD_VR="<path>\build-vr\bin\Release"
 ;            /DREPO_ROOT="<path>"
-;            "dist\installer\sheikah_protocol.iss"
+;            "dist\installer\neoxr_citra.iss"
 ;
 ; Defines you may override from the command line with /D:
 ;   APP_VERSION      Defaults to "0.1.0"
@@ -36,10 +36,10 @@
   #error "BUILD_VR must be defined (ISCC /DBUILD_VR=<dir with citra_vr.exe>)"
 #endif
 
-#define MyAppPublisher "Sheikah Protocol Project"
-#define MyAppQtName    "Sheikah Protocol"
-#define MyAppVrName    "Sheikah Protocol VR"
-#define MyAppURL       "https://github.com/amwatson/CitraVR"
+#define MyAppPublisher "NeoXR Citra Project"
+#define MyAppQtName    "NeoXR Citra"
+#define MyAppVrName    "NeoXR Citra VR"
+#define MyAppURL       "https://github.com/NeoShadow7366/C_VR_PC_Port"
 #define ArtRoot        REPO_ROOT + "\dist\steam_art\out"
 #define IntegRoot      REPO_ROOT + "\dist\steam_integration"
 #define MyAppId        "{{B7E4F2A1-9CD3-4F8E-B3A7-7F8B2C5D9E10}"
@@ -50,13 +50,13 @@ AppName={#MyAppQtName}
 AppVersion={#APP_VERSION}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
-DefaultDirName={localappdata}\Programs\SheikahProtocol
+DefaultDirName={localappdata}\Programs\NeoXRCitra
 DefaultGroupName={#MyAppQtName}
 DisableProgramGroupPage=no
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 OutputDir={#REPO_ROOT}\dist\installer\out
-OutputBaseFilename=SheikahProtocol-Setup-{#APP_VERSION}
+OutputBaseFilename=NeoXRCitra-Setup-{#APP_VERSION}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern

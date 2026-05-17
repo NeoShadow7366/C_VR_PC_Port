@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 CitraVR / Sheikah Protocol authors
+# SPDX-FileCopyrightText: 2026 CitraVR / NeoXR Citra authors
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # SteamShortcuts.psm1 — read/write Steam's binary shortcuts.vdf, with helpers

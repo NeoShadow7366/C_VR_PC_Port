@@ -1,14 +1,14 @@
-# SPDX-FileCopyrightText: 2026 CitraVR / Sheikah Protocol authors
+# SPDX-FileCopyrightText: 2026 CitraVR / NeoXR Citra authors
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Build-Installer.ps1
 # -------------------
-# One-shot build of the full Sheikah Protocol Windows installer:
+# One-shot build of the full NeoXR Citra Windows installer:
 #   1. (Re)build Steam grid art from dist\steam_art\source\
 #   2. Verify Qt + VR build outputs are present
-#   3. Invoke ISCC.exe to compile dist\installer\sheikah_protocol.iss
+#   3. Invoke ISCC.exe to compile dist\installer\neoxr_citra.iss
 #
-# Output: dist\installer\out\SheikahProtocol-Setup-<ver>.exe
+# Output: dist\installer\out\NeoXRCitra-Setup-<ver>.exe
 #
 # Requires: Inno Setup 6 (ISCC.exe on PATH or under "%PROGRAMFILES(X86)%\Inno Setup 6\").
 #           Get it from https://jrsoftware.org/isinfo.php   (free, no install needed for build).
@@ -70,7 +70,7 @@ if (-not $iscc) {
 }
 Write-Host "  using: $iscc"
 
-$iss = Join-Path $RepoRoot 'dist\installer\sheikah_protocol.iss'
+$iss = Join-Path $RepoRoot 'dist\installer\neoxr_citra.iss'
 $outDir = Join-Path $RepoRoot 'dist\installer\out'
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
@@ -87,7 +87,7 @@ if ($proc.ExitCode -ne 0) {
     throw "ISCC failed with exit code $($proc.ExitCode)"
 }
 
-$out = Get-ChildItem -Path $outDir -Filter "SheikahProtocol-Setup-*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$out = Get-ChildItem -Path $outDir -Filter "NeoXRCitra-Setup-*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($out) {
     Write-Host ""
     Write-Host "Installer built:" -ForegroundColor Green

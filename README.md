@@ -1,12 +1,13 @@
 <h1 align="center">
-  <br>
-  <a href="https://github.com/NeoShadow7366/C_VR_PC_Port"><img src="dist/steam_art/out/vr/logo_1280x720.png" alt="Sheikah Protocol VR" width="600"></a>
-  <br>
-  Sheikah Protocol VR
+  NeoXR Citra VR
   <br>
   <sub>An unofficial SteamVR / Windows PC port of <a href="https://github.com/amwatson/CitraVR">CitraVR</a></sub>
-  <br>
 </h1>
+
+<!-- Banner image intentionally omitted: the previous capsule/logo art under
+     dist/steam_art/ was generated from third-party source images of unknown
+     provenance and includes a baked-in Steam logo. The art will be replaced
+     before any release. See dist/steam_art/source/CREDITS.md. -->
 
 <h4 align="center">
   Play 3DS homebrew and your personal game backups in stereoscopic 3D on any SteamVR headset.
@@ -32,7 +33,7 @@
 
 ## Status
 
-Beta. The renderer, in-VR menu, Qt configuration UI, controller bindings, head-tracked gyro/accelerometer, and Steam/SteamVR launcher integration are all working and have been verified on real hardware (Valve Index, Bigscreen Beyond 2). Some features are still rough — see [Known Issues](#known-issues).
+Beta. The renderer, in-VR menu, Qt configuration UI, controller bindings, head-tracked gyro/accelerometer, and Steam/SteamVR launcher integration are all working. The author has verified the full path on a **Bigscreen Beyond 2** with Valve Index controllers; other HMDs are expected to work but are not personally verified. Some features are still rough — see [Known Issues](#known-issues).
 
 ## Features
 
@@ -66,23 +67,23 @@ Beta. The renderer, in-VR menu, Qt configuration UI, controller bindings, head-t
 
 ## Install & Run
 
-The project ships as a single-file Windows installer (**Sheikah Protocol**, built with Inno Setup) that deploys **two** entries and — optionally — registers them as non-Steam shortcuts so they appear in your Steam library with full grid art.
+The project ships as a single-file Windows installer (**NeoXR Citra**, built with Inno Setup) that deploys **two** entries and — optionally — registers them as non-Steam shortcuts so they appear in your Steam library with full grid art.
 
 | Entry | Binary | What it does |
 | --- | --- | --- |
-| **Sheikah Protocol** | `citra-qt.exe` | Flat-screen Citra (3DS emulator) with the Qt UI. |
-| **Sheikah Protocol VR** | `citra_vr_launcher.exe` | Tiny shim that starts SteamVR (Steam AppID 250820), waits for `vrserver.exe`, then launches `citra_vr.exe`. |
+| **NeoXR Citra** | `citra-qt.exe` | Flat-screen Citra (3DS emulator) with the Qt UI. |
+| **NeoXR Citra VR** | `citra_vr_launcher.exe` | Tiny shim that starts SteamVR (Steam AppID 250820), waits for `vrserver.exe`, then launches `citra_vr.exe`. |
 
 ### Quick start
 1. Install [SteamVR](https://store.steampowered.com/app/250820/SteamVR/) and confirm your headset works in SteamVR Home.
 2. Install the [Vulkan Runtime](https://vulkan.lunarg.com/sdk/home#windows) (the LunarG redistributable; the full SDK is only needed for building).
-3. Download the latest `SheikahProtocol-Setup-<ver>.exe` from the [Releases page](https://github.com/NeoShadow7366/C_VR_PC_Port/releases) and run it.
-4. The installer is **per-user** (no admin needed) and installs into `%LOCALAPPDATA%\Programs\SheikahProtocol\`. On the Tasks page you can opt in to:
+3. Download the latest `NeoXRCitra-Setup-<ver>.exe` from the [Releases page](https://github.com/NeoShadow7366/C_VR_PC_Port/releases) and run it.
+4. The installer is **per-user** (no admin needed) and installs into `%LOCALAPPDATA%\Programs\NeoXRCitra\`. On the Tasks page you can opt in to:
    - Desktop shortcuts for each entry
-   - **Add Sheikah Protocol to your Steam library**
-   - **Add Sheikah Protocol VR to your Steam library** *(marked as a VR title — auto-launches SteamVR)*
+   - **Add NeoXR Citra to your Steam library**
+   - **Add NeoXR Citra VR to your Steam library** *(marked as a VR title — auto-launches SteamVR)*
 5. **Restart Steam** once after install. Both entries then appear in your library with capsule / hero / logo / icon art.
-6. Click **Sheikah Protocol VR** in Steam → the launcher starts SteamVR (if it isn't already), waits for it to come up, then launches `citra_vr.exe`. Pick a ROM from the in-VR browser and play.
+6. Click **NeoXR Citra VR** in Steam → the launcher starts SteamVR (if it isn't already), waits for it to come up, then launches `citra_vr.exe`. Pick a ROM from the in-VR browser and play.
 
 > You will need legally-dumped copies of your own 3DS games. This project does **not** distribute ROMs or system files.
 
@@ -151,12 +152,12 @@ A `vr-debug` preset is also available for a debug build (PCH/LTO/W-as-E off).
 After both `qt` and `vr` presets have produced their binaries, build the Inno Setup installer (requires [Inno Setup 6](https://jrsoftware.org/isinfo.php) on `PATH` or in `%PROGRAMFILES(X86)%\Inno Setup 6\`):
 
 ```powershell
-cmake --build build-vr --target sheikah_installer
+cmake --build build-vr --target neoxr_installer
 # or directly:
 .\dist\installer\Build-Installer.ps1 -AppVersion 0.1.0
 ```
 
-Output: `dist\installer\out\SheikahProtocol-Setup-<ver>.exe` (~50 MB). See [dist/STEAM_INSTALLER_README.md](dist/STEAM_INSTALLER_README.md) for the full deployment system.
+Output: `dist\installer\out\NeoXRCitra-Setup-<ver>.exe` (~50 MB). See [dist/STEAM_INSTALLER_README.md](dist/STEAM_INSTALLER_README.md) for the full deployment system.
 
 ### Repository layout (VR-specific bits)
 
@@ -213,6 +214,8 @@ Cursors are color-coded: **teal** for left hand, **amber** for right.
 
 Issues and PRs are welcome on this fork. For changes that also make sense upstream (Quest version), please also consider opening a PR against [amwatson/CitraVR](https://github.com/amwatson/CitraVR).
 
+For security issues or trademark / takedown requests, please see [SECURITY.md](SECURITY.md) instead of opening a public issue.
+
 CI runs Windows VR + Qt builds plus a headless smoke test on every push — see [.github/workflows/windows-vr-qt.yml](.github/workflows/windows-vr-qt.yml).
 
 ## Credits
@@ -228,5 +231,29 @@ This project would not exist without:
 
 ## License
 
-CitraVR (and this fork) is licensed under the **GNU General Public License v3.0 or later**.
-See [license.txt](license.txt) and [NOTICE](NOTICE) for full terms and third-party attributions.
+NeoXR Citra (this fork) is licensed under the **GNU General Public License v3.0 or later**,
+as inherited from upstream Citra and CitraVR. See [license.txt](license.txt) and
+[NOTICE](NOTICE) for full terms and third-party attributions. The full corresponding
+source for any binary distribution is this repository:
+<https://github.com/NeoShadow7366/C_VR_PC_Port>.
+
+## Trademarks & Disclaimers
+
+This project is an independent, non-commercial fan effort. It is **not affiliated with,
+endorsed by, or sponsored by** any of the trademark holders listed below.
+
+- **Nintendo**, **3DS**, **Nintendo 3DS**, and all associated game titles and characters
+  are trademarks of **Nintendo Co., Ltd.**
+- **Steam**, **SteamVR**, **Steam Deck**, and the Steam logo are trademarks of
+  **Valve Corporation**.
+- **Bigscreen** and **Bigscreen Beyond** are trademarks of **Bigscreen, Inc.**
+- **Valve Index**, **Vive**, **Oculus**, **Meta Quest**, **Pimax**, **Varjo**,
+  and **Windows Mixed Reality** are trademarks of their respective owners.
+- **Vulkan**, **OpenXR**, and **glslang** are trademarks of **The Khronos Group Inc.**
+- All other trademarks are the property of their respective owners.
+
+Game and product names appear here strictly for **identification and interoperability**
+purposes (nominative fair use). This project does **not** distribute Nintendo ROMs,
+firmware, BIOS, encryption keys, or any other copyrighted Nintendo content. Users are
+responsible for supplying legally-obtained copies of any software they choose to run
+with this emulator.

@@ -1,9 +1,9 @@
-# SPDX-FileCopyrightText: 2026 CitraVR / Sheikah Protocol authors
+# SPDX-FileCopyrightText: 2026 CitraVR / NeoXR Citra authors
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Tiny WIN32 shim that ensures SteamVR is running, then invokes citra_vr.exe.
 # Distributed alongside citra_vr.exe by the Inno Setup installer; this is the
-# binary that the "Sheikah Protocol VR" Steam shortcut points at.
+# binary that the "NeoXR Citra VR" Steam shortcut points at.
 
 add_executable(citra_vr_launcher WIN32
     citra_vr_launcher.cpp
@@ -20,7 +20,7 @@ target_link_libraries(citra_vr_launcher PRIVATE
     shell32
 )
 
-# Embed Sheikah Protocol icon when available (post-art-build).
+# Embed NeoXR Citra icon when available (post-art-build).
 set(_vr_launcher_icon "${CMAKE_SOURCE_DIR}/dist/steam_art/out/vr/icon.ico")
 set(_vr_launcher_rc   "${CMAKE_CURRENT_BINARY_DIR}/citra_vr_launcher.rc")
 if (EXISTS "${_vr_launcher_icon}")

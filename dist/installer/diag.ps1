@@ -30,8 +30,8 @@ Get-ChildItem $ud -Directory | ForEach-Object {
 }
 
 Write-Host ""
-Write-Host "--- Sheikah install dir ---"
-$inst = "$env:LOCALAPPDATA\Programs\SheikahProtocol"
+Write-Host "--- NeoXR Citra install dir ---"
+$inst = "$env:LOCALAPPDATA\Programs\NeoXRCitra"
 if (Test-Path $inst) {
     Get-ChildItem $inst -Filter '*.exe' | ForEach-Object { Write-Host "  $($_.Name) $($_.Length) bytes" }
 } else {

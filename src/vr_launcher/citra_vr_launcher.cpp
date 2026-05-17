@@ -1,9 +1,9 @@
-// SPDX-FileCopyrightText: 2026 CitraVR / Sheikah Protocol authors
+// SPDX-FileCopyrightText: 2026 CitraVR / NeoXR Citra authors
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // citra_vr_launcher.exe
 // ---------------------
-// Tiny shim invoked by Steam (or directly) for the "Sheikah Protocol VR" entry.
+// Tiny shim invoked by Steam (or directly) for the "NeoXR Citra VR" entry.
 //
 //   1. If SteamVR's vrserver.exe is already running, skip ahead.
 //   2. Otherwise launch "steam://run/250820" (SteamVR's Steam AppID) so Steam
@@ -36,7 +36,7 @@ constexpr wchar_t kVrServerExe[]   = L"vrserver.exe";
 constexpr wchar_t kCitraVrExe[]    = L"citra_vr.exe";
 
 void ShowError(const std::wstring& msg) {
-    MessageBoxW(nullptr, msg.c_str(), L"Sheikah Protocol VR Launcher",
+    MessageBoxW(nullptr, msg.c_str(), L"NeoXR Citra VR Launcher",
                 MB_OK | MB_ICONERROR);
 }
 

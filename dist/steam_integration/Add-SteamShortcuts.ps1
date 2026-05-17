@@ -1,11 +1,11 @@
-# SPDX-FileCopyrightText: 2026 CitraVR / Sheikah Protocol authors
+# SPDX-FileCopyrightText: 2026 CitraVR / NeoXR Citra authors
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Add-SteamShortcuts.ps1
 # ----------------------
 # Adds two non-Steam shortcuts to the user's Steam library:
-#   - "Sheikah Protocol"     -> citra-qt.exe   (flat 3DS emulator)
-#   - "Sheikah Protocol VR"  -> citra_vr_launcher.exe (VR build via SteamVR)
+#   - "NeoXR Citra"     -> citra-qt.exe   (flat 3DS emulator)
+#   - "NeoXR Citra VR"  -> citra_vr_launcher.exe (VR build via SteamVR)
 #
 # Deploys matching grid art (capsule / hero / logo / small capsule / icon)
 # into <Steam>\userdata\<id>\config\grid\.
@@ -18,8 +18,8 @@
 param(
     [Parameter(Mandatory)][string]$InstallDir,   # directory containing citra-qt.exe + citra_vr_launcher.exe
     [string]$ArtRoot = (Join-Path $PSScriptRoot '..\steam_art\out'),
-    [string]$QtAppName = 'Sheikah Protocol',
-    [string]$VrAppName = 'Sheikah Protocol VR',
+    [string]$QtAppName = 'NeoXR Citra',
+    [string]$VrAppName = 'NeoXR Citra VR',
     [switch]$AllUsers,
     [switch]$VrOnly,
     [switch]$QtOnly
@@ -50,7 +50,7 @@ if (-not $VrOnly) {
             -Icon $qtIco `
             -LaunchOptions '' `
             -OpenVr $false `
-            -Tags @('Sheikah','Emulator') `
+            -Tags @('NeoXR','Emulator') `
             -GridArtDir $qtArt `
             -AllUsers:$AllUsers
         if ($ok) { $any = $true }
@@ -69,7 +69,7 @@ if (-not $QtOnly) {
             -Icon $vrIco `
             -LaunchOptions '' `
             -OpenVr $true `
-            -Tags @('VR','Sheikah','Emulator') `
+            -Tags @('VR','NeoXR','Emulator') `
             -GridArtDir $vrArt `
             -AllUsers:$AllUsers
         if ($ok) { $any = $true }
