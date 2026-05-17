@@ -26,6 +26,8 @@
 
 > **Heads up.** This is an unofficial fork. It is **not** affiliated with the original CitraVR project, the Citra team, or Valve. The upstream CitraVR targets standalone Meta Quest headsets; this fork targets desktop PCVR via SteamVR/OpenXR on Windows.
 
+> **About the author / AI disclosure.** I'm not a professional developer. This fork exists because I wanted a smooth, feature-rich way to play 3DS games on my own PCVR setup (specifically a **Bigscreen Beyond 2** driven by desktop GPU horsepower) and the upstream Quest build couldn't deliver that. The port has been built **with heavy use of AI coding assistants** (GitHub Copilot / Claude) — they wrote a large share of the code, with me directing the work, testing on real hardware, and iterating on what didn't work. Treat this project accordingly: it's a passion-driven personal branch, not a professionally-engineered product. Bugs, rough edges, and questionable design choices are to be expected. PRs and fixes from actual engineers are very welcome.
+
 ## Status
 
 Beta. The renderer, in-VR menu, Qt configuration UI, controller bindings, head-tracked gyro/accelerometer, and Steam/SteamVR launcher integration are all working and have been verified on real hardware (Valve Index, Bigscreen Beyond 2). Some features are still rough — see [Known Issues](#known-issues).
