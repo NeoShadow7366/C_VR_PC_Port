@@ -49,18 +49,17 @@ Beta. The renderer, in-VR menu, Qt configuration UI, controller bindings, head-t
 
 ## Supported Hardware
 
-### HMDs (tested)
-- Valve Index
+### HMDs (tested on real hardware)
 - Bigscreen Beyond 2
 
-### HMDs (expected to work, less testing)
-- Any SteamVR-compatible HMD: Vive (Pro/2/XR), Pimax, Varjo Aero, Quest 2/3/Pro over Link/AirLink/VirtualDesktop with the SteamVR runtime, WMR headsets via the OpenXR-SteamVR bridge.
+### HMDs (expected to work, not verified by the author)
+- Any SteamVR-compatible HMD: Valve Index, Vive (Pro/2/XR), Pimax, Varjo Aero, Quest 2/3/Pro over Link/AirLink/Virtual Desktop with the SteamVR runtime, WMR headsets via the OpenXR-SteamVR bridge. Reports welcome.
 
 ### GPU
-- A modern Vulkan 1.3-capable GPU (NVIDIA Turing+/AMD RDNA+/Intel Arc).
+- A reasonably modern Vulkan-capable GPU. Anything that already runs SteamVR titles smoothly at native HMD resolution should be fine.
 
 ### Controllers
-- Valve Index Knuckles (primary target)
+- Valve Index Knuckles (primary development target — default bindings assume Knuckles)
 - Vive Wands
 - Oculus Touch / Quest controllers (via SteamVR)
 - The in-VR menu lets you remap any 3DS button to any controller input and persists the bindings.
@@ -179,17 +178,18 @@ Output: `dist\installer\out\SheikahProtocol-Setup-<ver>.exe` (~50 MB). See [dist
 
 Default bindings (remappable via the in-VR menu → **Controls**):
 
-| Action | Binding |
+| Action | Default binding |
 | --- | --- |
 | Open / close menu | Wrist-bar **Menu** button (above left grip) |
 | Hold for Home | Long-press the wrist Menu button (700 ms) |
-| Start / Select | Wrist-bar Start / Select buttons (point + right trigger) |
-| 3DS A / B / X / Y | Right A / B / X / Y |
-| D-pad | Left thumbstick |
+| Start / Select | Wrist-bar Start / Select buttons (point + right trigger), **or** Right System / Left System |
+| 3DS A / B | Right A / Right B |
+| 3DS X / Y | Left A / Left B |
+| D-pad | Left thumbstick (also Index trackpad when touched) |
 | Circle Pad | Left thumbstick (analog) |
 | C-Stick | Right thumbstick |
-| L / R | Left / Right grip |
-| ZL / ZR | Left / Right trigger |
+| L / R | Left / Right **trigger** |
+| ZL / ZR | Left / Right **grip** |
 | Touchscreen | Point the **right** controller at the lower half of the screen and pull the trigger |
 | Scroll the menu | Right thumbstick (Y axis) |
 
@@ -197,7 +197,7 @@ Cursors are color-coded: **teal** for left hand, **amber** for right.
 
 ## Known Issues
 
-- **In-process Load State is disabled** — selecting a save slot relaunches the process to avoid a renderer-cache destructor AV. Save works in-process; Load uses a sentinel-restart. See [memories/repo/renderer_dtor_root_cause.md](memories/repo/renderer_dtor_root_cause.md) (also reproduced in `Project artifacts/`).
+- **In-process Load State is disabled** — selecting a save slot relaunches the process via a sentinel file to avoid a renderer-cache destructor AV. Save works in-process; Load uses the relaunch path. (Quick-save before quitting, then quick-load on next launch, works reliably.)
 - **SteamVR validation noise** (`PREINITIALIZED` layout, BlankEyeBuffer `SHADER_READ_ONLY_OPTIMAL`) — cosmetic, originates inside SteamVR's compositor; safe to ignore.
 - **WMR headsets via the OpenXR-SteamVR bridge** are untested and may need `CITRA_VR_HMD=generic`.
 - **No mixed-reality passthrough** on PCVR (was a Quest-only feature upstream).
